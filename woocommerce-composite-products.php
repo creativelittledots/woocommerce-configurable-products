@@ -262,6 +262,7 @@ class WC_Composite_Products {
 
 		return $links;
 	}
+	
 }
 
 $GLOBALS[ 'woocommerce_composite_products' ] = new WC_Composite_Products();

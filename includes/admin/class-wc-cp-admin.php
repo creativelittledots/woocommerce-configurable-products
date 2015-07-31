@@ -54,6 +54,9 @@ class WC_CP_Admin {
 
 		// Template override scan path
 		add_filter( 'woocommerce_template_overrides_scan_paths', array( $this, 'composite_template_scan_path' ) );
+		
+		// Add component html to metabox
+		add_action( 'woocommerce_composite_component_admin_html', array($this, 'component_admin_html'), 10, 3 );
 
 		// Basic component config options
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_title' ), 10, 3 );
@@ -1022,22 +1025,18 @@ class WC_CP_Admin {
 				<p class="form-field">
 					<label class="bundle_group_label">
 						<?php _e( 'Options Style', 'woocommerce-composite-products' ); ?>
-						<img class="help_tip" data-tip="<?php echo __( '<strong>Product Thumbnails</strong>:</br>Component Options are presented as product thumbnails, paginated and arranged in columns similar to the main shop loop. Use this setting if your Components include many product options. Also recommended if you want to display sorting and filtering controls.</br></br><strong>Dropdowns</strong>:</br>Component Options are listed in dropdown menus without any pagination. Use this setting if your Components include just a few product options. Also recommended if you want to keep the layout as compact as possible.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+						<img class="help_tip" data-tip="<?php echo __( $this->get_option_styles_descriptions(), 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					</label>
 					<select name="bto_selection_mode">
-						<?php
-
-						$mode = get_post_meta( $post->ID, '_bto_selection_mode', true );
-
-						if ( empty( $mode ) )
-							$mode = 'dropdowns';
-
-						echo '<option ' . selected( $mode, 'dropdowns', false ) .' value="dropdowns">' . __( 'Dropdowns', 'woocommerce-composite-products' ) . '</option>';
-						echo '<option ' . selected( $mode, 'thumbnails', false ) .' value="thumbnails">' . __( 'Product Thumbnails', 'woocommerce-composite-products' ) . '</option>';
-						?>
+						<?php 
+							$mode = get_post_meta( $post->ID, '_bto_selection_mode', true );
+							foreach($this->get_option_styles() as $option_style_key => $option_style) { ?>
+							<option <?php selected( $mode, $option_style_key); ?> value="<?php echo $option_style_key; ?>"><?php _e( $option_style['title'], 'woocommerce-composite-products' ); ?></option>
+						<?php } ?>
 					</select>
 				</p>
 			</div>
+			<?php do_action('woocommerce_composite_products_admin_before_components', $post->ID); ?>
 			<div class="options_group config_group bto_clearfix">
 
 				<h3><?php _e( 'Components:', 'woocommerce-composite-products' ); ?></h3>
@@ -1063,34 +1062,7 @@ class WC_CP_Admin {
 									$data[ 'component_id' ] = $group_id;
 								}
 
-								?><div class="bto_group wc-metabox closed" rel="<?php echo $data[ 'position' ]; ?>">
-									<h3>
-										<button type="button" class="remove_row button"><?php echo __( 'Remove', 'woocommerce' ); ?></button>
-										<div class="handlediv" title="<?php echo __( 'Click to toggle', 'woocommerce' ); ?>"></div>
-										<strong class="group_name"><?php echo apply_filters( 'woocommerce_composite_component_title', $data[ 'title' ], $group_id, $post->ID ); ?></strong>
-										<input type="hidden" name="bto_data[<?php echo $i; ?>][group_id]" class="group_id" value="<?php echo $group_id; ?>" />
-									</h3>
-									<div class="bto_group_data wc-metabox-content">
-										<ul class="subsubsub">
-											<li><a href="#" data-tab="basic" class="current"><?php
-												echo __( 'Basic Configuration', 'woocommerce-composite-products' );
-											?></a> | </li>
-											<li><a href="#" data-tab="advanced"><?php
-												echo __( 'Advanced Configuration', 'woocommerce-composite-products' );
-												?></a>
-											</li>
-										</ul>
-										<div class="options_group options_group_basic">
-											<?php do_action( 'woocommerce_composite_component_admin_config_html', $i, $data, $post->ID ); ?>
-										</div>
-										<div class="options_group options_group_advanced options_group_hidden">
-											<?php do_action( 'woocommerce_composite_component_admin_advanced_html', $i, $data, $post->ID ); ?>
-											<span class="group_id">
-												<?php echo sprintf( __( '#id: %s', 'woocommerce-composite-products' ), $group_id ); ?>
-											</span>
-										</div>
-									</div>
-								</div><?php
+								do_action('woocommerce_composite_component_admin_html', $data, $post->ID);
 
 								$i++;
 							}
@@ -1124,6 +1096,7 @@ class WC_CP_Admin {
 								echo sprintf( __( 'Need %s to set up <strong>Scenarios</strong> ?', 'woocommerce-composite-products' ), $tip );
 							?></span></br>
 							<a class="button-primary" href="<?php echo 'http://docs.woothemes.com/document/composite-products'; ?>" target="_blank"><?php _e( 'Learn more', 'woocommerce' ); ?></a>
+							
 						</div>
 						<p class="toolbar">
 							<a href="#" class="close_all"><?php _e( 'Close all', 'woocommerce' ); ?></a>
@@ -1172,6 +1145,7 @@ class WC_CP_Admin {
 						?></div>
 
 						<p class="toolbar borderless">
+							<?php do_action('woocommerce_composite_products_admin_before_add_scenario_button', $post); ?>
 							<button type="button" class="button button-primary add_bto_scenario"><?php _e( 'Add Scenario', 'woocommerce-composite-products' ); ?></button>
 						</p><?php
 
@@ -1806,6 +1780,7 @@ class WC_CP_Admin {
 
 					// Process custom data - add custom errors via $woocommerce_composite_products->admin->add_error()
 					$bto_scenario_data[ $scenario_id ] = apply_filters( 'woocommerce_composite_process_scenario_data', $bto_scenario_data[ $scenario_id ], $scenario_post_data, $scenario_id, $ordered_bto_data, $post_id );
+					
 				}
 
 				// Re-order and save position data
@@ -1911,6 +1886,48 @@ class WC_CP_Admin {
 		echo json_encode( $this->save_errors );
 		die();
 	}
+	
+	/**
+	 * Handles component html being loaded in action 'woocommerce_composite_component_admin_html'
+	 *
+	 * @return void
+	 */
+	function component_admin_html($data = array(), $post_id, $toggle = 'closed') {
+		
+		$data = array_merge(array(
+			'title' => '',
+			'component_id' => '',
+			'position' => 1
+		), $data);
+		
+		$tabs = $this->get_component_tabs();
+		
+		include('html-component-admin.php');
+		
+	}
+	
+	/**
+	 * Handles getting component tabs for use in component_admin_html
+	 *
+	 * @return array()
+	 */
+	
+	function get_component_tabs() {
+		
+		return apply_filters('woocommerce_composite_extension_admin_component_tabs', array(
+			'basic' => array(
+				'title' => 'Basic Configuration',
+				'action' => 'woocommerce_composite_component_admin_config_html',
+				'classes' => array(),
+			),
+			'advanced' => array(
+				'title' => 'Advanced Configuration',
+				'action' => 'woocommerce_composite_component_admin_advanced_html',
+				'classes' => array(),
+			)
+		));
+		
+	}
 
 	/**
 	 * Handles adding components via ajax.
@@ -1923,8 +1940,13 @@ class WC_CP_Admin {
 
 		$id      = intval( $_POST[ 'id' ] );
 		$post_id = intval( $_POST[ 'post_id' ] );
+		
+		$data = array(
+			'title' => '',
+			'position' => $id,
+		);
 
-		include( 'html-component-admin.php' );
+		do_action('woocommerce_composite_component_admin_html', $data, $post_id, 'open');
 
 		die();
 	}
@@ -2145,4 +2167,58 @@ class WC_CP_Admin {
 
 		$this->save_errors[] = $this->add_admin_error( $error );
 	}
+	
+	/**
+	 * Retreieve option styles for option styles
+	 *
+	 * @return array()
+	 */
+	function get_option_styles() {
+		
+		$styles = array(
+			'dropdowns' => array(
+				'title' => 'Dropdowns',
+				'description' => 'Component Options are listed in dropdown menus without any pagination. Use this setting if your Components include just a few product options. Also recommended if you want to keep the layout as compact as possible.',
+			),
+			'thumbnails' => array(
+				'title' => 'Product Thumbnails',
+				'description' => 'Component Options are presented as product thumbnails, paginated and arranged in columns similar to the main shop loop. Use this setting if your Components include many product options. Also recommended if you want to display sorting and filtering controls.',
+			)
+		);
+		
+		return apply_filters('woocommerce_composite_products_selection_modes', $styles);
+		
+	}
+	
+	/**
+	 * Retreieve option style description for option styles
+	 *
+	 * @return array()
+	 */
+	function get_option_styles_descriptions() {
+		
+		$description = '';
+		
+		$i = 1;
+		
+		$option_styles = $this->get_option_styles();
+		
+		foreach($option_styles as $style) {
+			
+			$description .= '<strong>' . $style['title'] . '</strong>:</br>' . $style['description'];
+			
+			if(count($option_styles) > $i) {
+				
+				$description .= '</br></br>';
+				
+			}
+			
+			$i++;
+			
+		}
+		
+		return apply_filters('woocommerce_composite_products_option_style_description', $description);
+		
+	}
+	
 }

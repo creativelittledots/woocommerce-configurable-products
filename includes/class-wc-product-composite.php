@@ -298,6 +298,10 @@ class WC_Product_Composite extends WC_Product {
 
 		$this->composite_price_data[ 'total' ]         = (float) 0;
 		$this->composite_price_data[ 'regular_total' ] = (float) 0;
+		
+		// added by CLD
+		$this->composite_price_data = apply_filters('woocommerce_composite_price_data', $this->composite_price_data, $this);
+		
 	}
 
 	/**
