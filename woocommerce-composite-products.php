@@ -1,23 +1,16 @@
 <?php
 /*
-* Plugin Name: WooCommerce Composite Products
+* Plugin Name: WooCommerce Composite Products Extended
 * Plugin URI: http://www.woothemes.com/products/composite-products/
-* Description: Create complex, configurable product kits and let your customers build their own, personalized versions.
-* Version: 3.1.0
-* Author: WooThemes
-* Author URI: http://woothemes.com/
-* Developer: SomewhereWarm
-* Developer URI: http://somewherewarm.net/
+* Description: Create complex, configurable product kits and let your customers build their own, personalized versions. Extends the Woocommerce Composite Products Plugin to Allow Radio Box as an Option Style.
+* Version: 1.0.0
+* Author: Creative Little Dots
+* Author URI: http://creativelittledots.co.uk
 *
 * Text Domain: woocommerce-composite-products
 * Domain Path: /languages/
 *
-* Requires at least: 3.8
-* Tested up to: 4.2
 *
-* Copyright: © 2009-2015 WooThemes.
-* License: GNU General Public License v3.0
-* License URI: http://www.gnu.org/licenses/gpl-3.0.html
 */
 
 // Exit if accessed directly
