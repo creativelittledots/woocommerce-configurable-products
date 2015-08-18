@@ -199,7 +199,7 @@ class WC_Product_Composite extends WC_Product {
 						$component_data[ 'quantity_min' ] 	= 0;
 					}
 
-					if ( $component_data[ 'quantity_min' ] != $component_data[ 'quantity_max' ] )
+					if ( $component_data[ 'quantity_min' ] && $component_data[ 'quantity_max' ] )
 						$this->has_multiple_quantities = true;
 
 					$this->min_composite_price          = $this->min_composite_price + $component_data[ 'quantity_min' ] * $item_min_price;
@@ -522,7 +522,7 @@ class WC_Product_Composite extends WC_Product {
 	 *
 	 * @return 	string    modified price html suffix
 	 */
-	public function get_price_suffix() {
+	public function get_price_suffix($price = '', $qty = 1) {
 
 		global $woocommerce_composite_products;
 
