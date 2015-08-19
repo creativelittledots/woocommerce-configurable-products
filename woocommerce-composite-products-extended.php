@@ -23,30 +23,10 @@ if ( ! function_exists( 'woothemes_queue_update' ) ) {
 	require_once( 'woo-includes/woo-functions.php' );
 }
 
-// Plugin updates
-woothemes_queue_update( plugin_basename( __FILE__ ), '0343e0115bbcb97ccd98442b8326a0af', '216836' );
-
 // Check if WooCommerce is active
 if ( ! is_woocommerce_active() ) {
 	return;
 }
-
-/**
- * # Composite Products
- *
- * This extension implements dynamic bundling functionalities by utilizing a container product (the "composite" type) that triggers the addition of other products to the cart.
- * Composite Products consist of Components. Components are created by defining a set of Component Options. Any existing catalog product (simple, variable or bundle) can be selected as a Component Option.
- * A Composite Product can be added to the cart when all of its Components are configured.
- * The extension does its own validation to ensure that the selected "Composited Products" can be added to the cart.
- * Composited products are added on the woocommerce_add_to_cart hook after adding the main container item.
- * Using a main container item makes it possible to define pricing properties and/or physical properties that replace the pricing and/or physical properties of the bundled products. This is useful when the composite has a new static price and/or new shipping properties.
- * Depending on the chosen pricing / shipping mode, the container item OR the contained products are marked as virtual, or are assigned a zero price in the cart.
- * To avoid confusion with zero prices in the front end, the extension filters the displayed price strings, cart item meta and markup classes in order to give the impression of a grouping relationship between the container and its "contents".
- *
- * @class WC_Composite_Products
- * @author  SomewhereWarm
- * @version 3.1.0
- */
 
 class WC_Composite_Products {
 
