@@ -995,8 +995,11 @@ class WC_CP_Cart {
 	 */
 	function wc_cp_order_again( $cart_item_data, $order_item, $order ) {
 
-		if ( isset( $order_item[ 'composite_parent' ] ) && isset( $order_item[ 'composite_data' ] ) )
+		if ( isset( $order_item[ 'composite_parent' ] ) && isset( $order_item[ 'composite_data' ] ) ) {
 			$cart_item_data[ 'is_composited' ] = 'yes';
+			$cart_item_data[ 'composite_parent' ] = maybe_unserialize( $order_item[ 'composite_parent' ] );
+		}
+			
 
 		if ( isset( $order_item[ 'composite_children' ] ) && isset( $order_item[ 'composite_data' ] ) ) {
 
@@ -1087,15 +1090,17 @@ class WC_CP_Cart {
 	 * @param  string 	$cart_item_key
 	 * @return string
 	 */
-	function wc_cp_item_subtotal( $subtotal, $values, $cart_item_key ) {
+	function wc_cp_item_subtotal( $subtotal, $values, $cart_item_key, $cart = array() ) {
+		
+		$cart = $cart ? $cart : WC()->cart->cart_contents;
 
 		if ( ! empty( $values[ 'composite_parent' ] ) ) {
 
 			$parent_cart_key = $values[ 'composite_parent' ];
 
-			if ( isset( WC()->cart->cart_contents[ $parent_cart_key ] ) ) {
+			if ( isset( $cart[ $parent_cart_key ] ) ) {
 
-				if ( ! WC()->cart->cart_contents[ $parent_cart_key ][ 'data' ]->is_priced_per_product() ) {
+				if ( ! $cart[ $parent_cart_key ][ 'data' ]->is_priced_per_product() ) {
 					return '';
 				} else {
 					return __( 'Option subtotal', 'woocommerce-composite-products' ) . ': ' . $subtotal;
@@ -1109,7 +1114,7 @@ class WC_CP_Cart {
 			$composited_items_price = 0;
 			$composite_price        = get_option( 'woocommerce_tax_display_cart' ) == 'excl' ? $values[ 'data' ]->get_price_excluding_tax( $values[ 'quantity' ] ) : $values[ 'data' ]->get_price_including_tax( $values[ 'quantity' ] );
 
-			foreach ( WC()->cart->cart_contents as $cart_key => $cart_data ) {
+			foreach ( $cart as $cart_key => $cart_data ) {
 
 				if ( apply_filters( 'woocommerce_cart_item_is_child_of_composite', in_array( $cart_key, $values[ 'composite_children' ] ), $cart_key, $cart_data, $cart_item_key, $values ) ) {
 

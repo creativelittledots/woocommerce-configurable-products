@@ -187,7 +187,7 @@ class WC_CP_Order {
 	 * @param  string 	$cart_item_key
 	 * @return void
 	 */
-	function wc_cp_add_order_item_meta( $order_item_id, $cart_item_values, $cart_item_key ) {
+	function wc_cp_add_order_item_meta( $order_item_id, $cart_item_values, $cart_item_key = null ) {
 
 		if ( ! empty( $cart_item_values[ 'composite_children' ] ) ) {
 
@@ -216,7 +216,8 @@ class WC_CP_Order {
 
 		if ( ! empty( $cart_item_values[ 'composite_data' ] ) ) {
 
-			wc_add_order_item_meta( $order_item_id, '_composite_cart_key', $cart_item_key );
+			if( $cart_item_key )
+				wc_add_order_item_meta( $order_item_id, '_composite_cart_key', $cart_item_key );
 
 			wc_add_order_item_meta( $order_item_id, '_composite_data', $cart_item_values[ 'composite_data' ] );
 
@@ -239,6 +240,7 @@ class WC_CP_Order {
 				}
 			}
 		}
+
 	}
 
 	/**
