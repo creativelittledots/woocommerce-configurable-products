@@ -17,7 +17,7 @@ class WC_CP_Order {
 	public function __construct() {
 
 		// Filter price output shown in cart, review-order & order-details templates
-		add_filter( 'woocommerce_order_formatted_line_subtotal', array( $this, 'wc_cp_order_item_subtotal' ), 10, 3 );
+		//add_filter( 'woocommerce_order_formatted_line_subtotal', array( $this, 'wc_cp_order_item_subtotal' ), 10, 3 );
 
 		// Composite containers should not affect order status
 		add_filter( 'woocommerce_order_item_needs_processing', array( $this, 'wc_cp_container_items_need_no_processing' ), 10, 3 );
