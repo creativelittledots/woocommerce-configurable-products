@@ -55,6 +55,7 @@ if ( $hide_product_thumbnail != 'yes' ) {
 
 	$attributes          = $product->get_variation_attributes();
 	$selected_attributes = $product->get_variation_default_attributes();
+	var_dump($selected_attributes);
 
 	?><table class="variations" cellspacing="0">
 		<tbody><?php

@@ -44,7 +44,7 @@ if ( $hide_product_thumbnail != 'yes' ) {
 	), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
 }
 
-?><div class="details component_data" data-component_set="true" data-price="<?php echo $data['price_data']['price']; ?>" data-regular_price="<?php echo $data['price_data']['regular_price']; ?>" data-product_type="simple" data-custom="<?php echo esc_attr( json_encode( $data[ 'custom_data' ] ) ); ?>"><?php
+?><div class="details component_data hide" data-component_set="true" data-price="<?php echo $data['price_data']['price']; ?>" data-regular_price="<?php echo $data['price_data']['regular_price']; ?>" data-product_type="simple" data-custom="<?php echo esc_attr( json_encode( $data[ 'custom_data' ] ) ); ?>"><?php
 
 	if ( $hide_product_description != 'yes' )
 		wc_get_template( 'composited-product/excerpt.php', array(

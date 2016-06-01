@@ -27,7 +27,7 @@ $component_classes = $product->get_component_classes( $component_id );
 
 	?></div>
 
-	<div class="component_inner" <?php echo in_array( 'toggled', $component_classes ) && in_array( 'closed', $component_classes ) ? 'style="display:none;"' : ''; ?>>
+	<div class="component_inner pd-v-1" <?php echo in_array( 'toggled', $component_classes ) && in_array( 'closed', $component_classes ) ? 'style="display:none;"' : ''; ?>>
 
 		<div class="block_component"></div>
 
