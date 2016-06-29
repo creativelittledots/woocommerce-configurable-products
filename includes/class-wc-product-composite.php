@@ -341,7 +341,7 @@ class WC_Product_Composite extends WC_Product {
 	public function get_base_price() {
 
 		if ( $this->is_priced_per_product() ) {
-			return apply_filters( 'woocommerce_composite_get_base_price', $this->base_price, $this );
+			return apply_filters( 'woocommerce_composite_get_base_price', get_query_var( 'wc_query' ) == 'product_query' ? max($this->min_price, $this->base_price) : $this->base_price, $this );
 		} else {
 			return false;
 		}
@@ -355,7 +355,7 @@ class WC_Product_Composite extends WC_Product {
 	public function get_base_regular_price() {
 
 		if ( $this->is_priced_per_product() ) {
-			return apply_filters( 'woocommerce_composite_get_base_regular_price', $this->base_regular_price, $this );
+			return apply_filters( 'woocommerce_composite_get_base_regular_price', get_query_var( 'wc_query' ) == 'product_query' ? max($this->min_price, $this->base_regular_price) : $this->base_regular_price, $this );
 		} else {
 			return false;
 		}
