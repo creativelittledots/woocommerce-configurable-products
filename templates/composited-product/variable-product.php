@@ -55,7 +55,6 @@ if ( $hide_product_thumbnail != 'yes' ) {
 
 	$attributes          = $product->get_variation_attributes();
 	$selected_attributes = $product->get_variation_default_attributes();
-	var_dump($selected_attributes);
 
 	?><table class="variations" cellspacing="0">
 		<tbody><?php
@@ -74,8 +73,8 @@ if ( $hide_product_thumbnail != 'yes' ) {
 
 							$selected_value = '';
 
-							if ( isset( $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ] ) && $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ] !== '' ) {
-								$selected_value = $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ];
+							if ( isset( $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ][ $product->id ] ) && $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ][ $product->id ] !== '' ) {
+								$selected_value = $_POST[ 'wccp_attribute_' . sanitize_title( $name ) ][ $component_id ][ $product->id ];
 							} else {
 								$selected_value = ( isset( $selected_attributes[ sanitize_title( $name ) ] ) ) ? $selected_attributes[ sanitize_title( $name ) ] : '';
 							}
@@ -91,12 +90,12 @@ if ( $hide_product_thumbnail != 'yes' ) {
 										continue;
 									}
 
-									echo '<option value="' . esc_attr( $term->slug ) . '" ' . selected( $selected_value, $term->slug, false ) . '>' . apply_filters( 'woocommerce_variation_option_name', $term->name ) . '</option>';
+									echo '<option value="' . esc_attr( $term->slug ) . '" ' . selected( $selected_value, $term->slug, false ) . ' class="' . esc_attr( implode(' ', apply_filters('woocommerce_variation_option_classes', array(), $term->slug, $name, $product, $composite_product ) ) ) . '">' . apply_filters( 'woocommerce_variation_option_name', $term->name ) . '</option>';
 								}
 							} else {
 
 								foreach ( $options as $option ) {
-									echo '<option value="' . esc_attr( sanitize_title( $option ) ) . '" ' . selected( sanitize_title( $selected_value ), sanitize_title( $option ), false ) . '>' . esc_html( apply_filters( 'woocommerce_variation_option_name', $option ) ) . '</option>';
+									echo '<option value="' . esc_attr( sanitize_title( $option ) ) . '" ' . selected( sanitize_title( $selected_value ), sanitize_title( $option ), false ) . ' class="' . esc_attr( implode(' ', apply_filters('woocommerce_variation_option_classes', array(), $option, $name, $product, $composite_product ) ) ) . '">' . esc_html( apply_filters( 'woocommerce_variation_option_name', $option ) ) . '</option>';
 								}
 							}
 						}

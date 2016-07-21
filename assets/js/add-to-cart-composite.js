@@ -250,7 +250,7 @@ jQuery( document ).ready( function($) {
 
 				var current_step = composite.get_current_step();
 
-				if ( style === 'paged' || style === 'progressive' ) {
+				if ( style === 'paged' || style === 'progressive') {
 
 					current_step.show_step();
 
@@ -269,6 +269,7 @@ jQuery( document ).ready( function($) {
 				// Let 3rd party scripts know that all component options are loaded
 				this.$components.each( function() {
 					$(this).trigger( 'wc-composite-component-options-loaded' );
+					
 				} );
 
 				// Trigger post-init event
@@ -487,9 +488,11 @@ jQuery( document ).ready( function($) {
 						 * Get the product type of the selected product
 						 */
 
-						get_selected_product_type: function() {
+						get_selected_product_type: function(i) {
+							
+							i = typeof i === 'undefined' ? 0 : i;
 
-							return this.$component_data.data( 'product_type' );
+							return this.$component_data.eq(i).data( 'product_type' );
 
 						},
 
@@ -497,9 +500,11 @@ jQuery( document ).ready( function($) {
 						 * Get the product id of the selected product (non casted)
 						 */
 
-						get_selected_product_id: function() {
+						get_selected_product_ids: function() {
+							
+							var product_ids = this.$component_options.find( '#component_options_' + this.component_id ).val();
 
-							return this.$component_options.find( '#component_options_' + this.component_id ).val();
+							return $.isArray(product_ids) ? product_ids : [product_ids];
 
 						},
 
@@ -529,46 +534,69 @@ jQuery( document ).ready( function($) {
 							}
 
 							this.$component_data = this.$self.find( '.component_data' );
+							
+							var price = 0;
 
 							if ( init ) {
-
-								var product_type    = this.get_selected_product_type();
+								
+								var products = this.get_selected_product_ids();
 								var summary_content = this.$self.find( '.component_summary > .content' );
-
-								if ( product_type === 'variable' ) {
-
-									if ( ! summary_content.hasClass( 'cart' ) ) {
-										summary_content.addClass( 'cart' );
+								
+								for(var i in products) {
+									
+									var product = products[i];
+									
+									var product_type = this.get_selected_product_type(i);
+	
+									if ( product_type === 'variable' ) {
+	
+										if ( ! summary_content.hasClass( 'cart' ) ) {
+											summary_content.addClass( 'cart' );
+										}
+	
+										if ( ! summary_content.hasClass( 'variations_form' ) ) {
+											summary_content.addClass( 'variations_form' );
+										}
+	
+										// Selections must be updated before firing script in order to load variation_data
+										this.get_step().fire_scenario_actions();
+	
+										// Initialize variations script
+										summary_content.wc_variation_form();
+	
+										// Fire change in order to save 'variation_id' input
+										summary_content.find( '.variations select' ).change();
+	
+									} else if ( product_type === 'bundle' ) {
+	
+										if ( ! summary_content.hasClass( 'bundle_form' ) ) {
+											summary_content.addClass( 'bundle_form' );
+										}
+	
+										// Initialize bundles script now
+										summary_content.find( '.bundle_data' ).wc_pb_bundle_form();
+	
+									} else {
+	
+										if ( ! summary_content.hasClass( 'cart' ) ) {
+											summary_content.addClass( 'cart' );
+										}
 									}
-
-									if ( ! summary_content.hasClass( 'variations_form' ) ) {
-										summary_content.addClass( 'variations_form' );
+									
+									if(products.length > 1) {
+										
+										this.$component_data.find('.price').remove();
+										
+										price += this.$component_data.eq(i).data( 'price' );
+									
+										summary_content.find('> .price .amount').replaceWith(wc_cp_woocommerce_number_format( wc_cp_number_format( price ) ));
+										
 									}
-
-									// Selections must be updated before firing script in order to load variation_data
-									this.get_step().fire_scenario_actions();
-
-									// Initialize variations script
-									summary_content.wc_variation_form();
-
-									// Fire change in order to save 'variation_id' input
-									summary_content.find( '.variations select' ).change();
-
-								} else if ( product_type === 'bundle' ) {
-
-									if ( ! summary_content.hasClass( 'bundle_form' ) ) {
-										summary_content.addClass( 'bundle_form' );
-									}
-
-									// Initialize bundles script now
-									summary_content.find( '.bundle_data' ).wc_pb_bundle_form();
-
-								} else {
-
-									if ( ! summary_content.hasClass( 'cart' ) ) {
-										summary_content.addClass( 'cart' );
-									}
+									
+									
+									
 								}
+								
 							}
 
 						},
@@ -1013,25 +1041,45 @@ jQuery( document ).ready( function($) {
 						var form_data = composite.$composite_data.find( '.composite_wrap .composite_button .form_data_' + component.component_id );
 
 						// Start copying submit form data - TODO: get rid of this by making the variations script usable regardless of the variations form input names (https://github.com/woothemes/woocommerce/pull/6531)
-						var variation_data 	= '<input type="hidden" name="wccp_variation_id[' + component.component_id + ']" class="variation_input" value="' + variation.variation_id + '"/>';
+						var variation_data 	= '<input type="hidden" name="wccp_variation_id[' + component.component_id + '][' + variation.product_id + ']" class="variation_input" value="' + variation.variation_id + '"/>';
 						form_data.append( variation_data );
 
 						for ( var attribute in variation.attributes ) {
-							var attribute_data 	= '<input type="hidden" name="wccp_' + attribute + '[' + component.component_id + ']" class="attribute_input" value="' + $(this).find( '.variations .attribute-options select[name="' + attribute + '"]' ).val() + '"/>';
+							var attribute_data 	= '<input type="hidden" name="wccp_' + attribute + '[' + component.component_id + '][' + variation.product_id + ']" class="attribute_input" value="' + $(this).find( '.variations .attribute-options select[name="' + attribute + '"]' ).val() + '"/>';
 							form_data.append( attribute_data );
 						}
 						// End copying form data
-
+						
 						// Copy variation price data
 						var price_data = composite.$composite_data.data( 'price_data' );
-
-						if ( price_data[ 'per_product_pricing' ] == true ) {
-							component.$component_data.data( 'price', variation.price );
-							component.$component_data.data( 'regular_price', variation.regular_price );
+						
+						var products = component.get_selected_product_ids();
+						
+						
+						for(var i in products) {
+							
+							if(variation.product_id == products[i]) {
+								
+								break;
+								
+							}
+							
 						}
 
+						if ( price_data[ 'per_product_pricing' ] == true ) {
+							component.$component_data.eq(i).data( 'price', variation.price );
+							component.$component_data.eq(i).data( 'regular_price', variation.regular_price );
+							
+						}
+						
+						var custom_data = component.$component_data.eq(i).data( 'custom' );
+						
+						custom_data['all_prices'] = variation.all_prices;
+						
+						component.$component_data.eq(i).data( 'custom', custom_data );
+
 						// Mark component as set
-						component.$component_data.data( 'component_set', true );
+						component.$component_data.eq(i).data( 'component_set', true );
 
 						// Remove images class from composited_product_images div in order to avoid styling issues
 						summary.find( '.composited_product_images' ).removeClass( 'images' );
@@ -1189,10 +1237,12 @@ jQuery( document ).ready( function($) {
 						// Select thumbnail
 						item.find( '.component_option_thumbnails .selected' ).removeClass( 'selected disabled' );
 						item.find( '#component_option_thumbnail_' + $(this).val() ).addClass( 'selected' );
+						
+						var product_ids = component.get_selected_product_ids();
 
 						var data = {
 							action: 		'woocommerce_show_composited_product',
-							product_id: 	$(this).val(),
+							product_id: 	product_ids,
 							component_id: 	item_id,
 							composite_id: 	container_id,
 							security: 		wc_composite_params.show_product_nonce
@@ -1398,7 +1448,7 @@ jQuery( document ).ready( function($) {
 
 							// lock height
 							component_content.css( 'height', load_height );
-
+							
 							// reset content
 							summary_content.html( '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>' );
 
@@ -1429,7 +1479,7 @@ jQuery( document ).ready( function($) {
 
 						// Variables to post
 						var page                    = parseInt( $(this).data( 'page_num' ) );
-						var selected_option         = component.get_selected_product_id();
+						var selected_option         = component.get_selected_product_ids();
 						var container_id            = composite.composite_id;
 						var filters                 = component.get_active_filters();
 
@@ -1467,7 +1517,7 @@ jQuery( document ).ready( function($) {
 						var item_id                 = component.component_id;
 
 						// Variables to post
-						var selected_option         = component.get_selected_product_id();
+						var selected_option         = component.get_selected_product_ids();
 						var container_id            = composite.composite_id;
 						var orderby                 = $(this).val();
 						var filters                 = component.get_active_filters();
@@ -1505,7 +1555,7 @@ jQuery( document ).ready( function($) {
 						var component_filter_option = $(this).closest( '.component_filter_option' );
 
 						// Variables to post
-						var selected_option         = component.get_selected_product_id();
+						var selected_option         = component.get_selected_product_ids();
 						var container_id            = composite.composite_id;
 						var filters                 = {};
 
@@ -1563,7 +1613,7 @@ jQuery( document ).ready( function($) {
 						}
 
 						// Variables to post
-						var selected_option         = component.get_selected_product_id();
+						var selected_option         = component.get_selected_product_ids();
 						var container_id            = composite.composite_id;
 						var filters                 = {};
 
@@ -1614,7 +1664,7 @@ jQuery( document ).ready( function($) {
 						}
 
 						// Variables to post
-						var selected_option         = component.get_selected_product_id();
+						var selected_option         = component.get_selected_product_ids();
 						var container_id            = composite.composite_id;
 						var filters                 = {};
 
@@ -1658,7 +1708,6 @@ jQuery( document ).ready( function($) {
 
 						var component_filter         = $(this).closest( '.component_filter' );
 						var component_filter_content = component_filter.find( '.component_filter_content' );
-
 						wc_cp_toggle_element( component_filter, component_filter_content );
 
 						$(this).blur();
@@ -1685,9 +1734,7 @@ jQuery( document ).ready( function($) {
 						}
 
 						var component_inner = component.$component_inner;
-
 						if ( wc_cp_toggle_element( item, component_inner ) ) {
-
 							if ( item.hasClass( 'progressive' ) && item.hasClass( 'blocked' ) ) {
 								window.setTimeout( function() {
 									form.find( '.page_button.next' ).click();
@@ -2059,7 +2106,7 @@ jQuery( document ).ready( function($) {
 
 							if ( prev_step !== false ) {
 								prev_step.block_step_inputs();
-							}
+							}	
 
 							this.unblock_step_inputs();
 							this.unblock_step();
@@ -2087,6 +2134,8 @@ jQuery( document ).ready( function($) {
 							}
 
 							this.$markup.removeClass( 'blocked' );
+							
+							this.unblock_step_inputs();
 
 						},
 
@@ -2117,6 +2166,12 @@ jQuery( document ).ready( function($) {
 						 */
 
 						block_step: function() {
+							
+							if(! wc_composite_params.block_components ) {
+								
+								return;
+								
+							}
 
 							this.$markup.addClass( 'blocked' );
 
@@ -2128,6 +2183,8 @@ jQuery( document ).ready( function($) {
 
 								this.$markup.find( '.component_title' ).addClass( 'inactive' );
 							}
+							
+							this.$markup.trigger('after_blocked_step');
 
 						},
 
@@ -2159,7 +2216,7 @@ jQuery( document ).ready( function($) {
 
 							var reset_options = this.$markup.find( '.clear_component_options' );
 
-							reset_options.html( wc_composite_params.i18n_reset_selection ).addClass( 'reset_component_options' );
+							reset_options.html( wc_composite_params.i18n_reset_selection ).addClass( 'reset_component_options' ).trigger('after_blocked_step_inputs');
 
 						},
 
@@ -2226,40 +2283,50 @@ jQuery( document ).ready( function($) {
 
 								var component = this.get_component();
 
-								var product_id   = component.get_selected_product_id();
-								var product_type = component.get_selected_product_type();
+								var product_ids   = component.get_selected_product_ids();
+								
+								var response = true;
+								
+								for(var i in product_ids) {
+									
+									var product_id = product_ids[i];
+									
+									var product_type = component.get_selected_product_type(i);
 
-								if ( product_id > 0 && component.is_in_stock() ) {
-
-									if ( product_type === 'variable' ) {
-
-										if ( component.$component_summary.find( '.variations_button input[name="variation_id"]' ).val() != '' ) {
-											return true;
+									if ( product_id > 0 && component.is_in_stock() ) {
+	
+										if ( product_type === 'variable' ) {
+	
+											if ( component.$component_summary.find( '.variations_button input[name="variation_id"]' ).val() == '' ) {
+												response = false;
+											} else {
+											}
+	
+										}  else if ( product_type === 'simple' || product_type === 'none' ) {
+	
+											// ok
+	
 										} else {
-											return false;
+	
+											if ( component.$component_data.data( 'component_set' ) == true ) {
+												// ok
+											} else {
+												response = false;
+											}
 										}
-
-									}  else if ( product_type === 'simple' || product_type === 'none' ) {
-
-										return true;
-
+	
+									} else if ( product_id === '' && component.is_optional() ) {
+	
+										// ok
+	
 									} else {
-
-										if ( component.$component_data.data( 'component_set' ) == true ) {
-											return true;
-										} else {
-											return false;
-										}
+										response = false;
 									}
-
-								} else if ( product_id === '' && component.is_optional() ) {
-
-									return true;
-
-								} else {
-
-									return false;
+									
 								}
+								
+								return response;
+								
 							}
 
 							return false;
@@ -2490,101 +2557,113 @@ jQuery( document ).ready( function($) {
 					active_scenarios_excl_current            = active_scenarios_incl_current.slice();
 					scenario_shaping_components_excl_current = scenario_shaping_components_incl_current.slice();
 
-					var product_id   = component.get_selected_product_id();
-					var product_type = component.get_selected_product_type();
+					var product_ids = composite.composite_steps[ index ].get_component().get_selected_product_ids();
+					
+					var response = true;
+					
+					for(var i in product_ids) {
+						
+						product_id = product_ids[i];
+						
+						var product_type = component.get_selected_product_type(i);
 
-					if ( product_id !== null && product_id >= 0 ) {
-
-						var scenario_data      = composite.get_scenario_data().scenario_data;
-						var item_scenario_data = scenario_data[ component_id ];
-
-						// Treat '' optional component selections as 'None' if the component is optional
-						if ( product_id === '' ) {
-							if ( 0 in item_scenario_data ) {
-								product_id = '0';
-							} else {
-								return true;
-							}
-						}
-
-						var product_in_scenarios = item_scenario_data[ product_id ];
-
-						if ( wc_composite_params.script_debug === 'yes' ) {
-							console.log( tabs + 'Selection #' + product_id + ' of ' + component.get_title() + ' in scenarios: ' + product_in_scenarios.toString() );
-						}
-
-						scenario_shaping_components_incl_current.push( component_id );
-
-						var product_intersection    = wc_cp_intersect_safe( active_scenarios_incl_current, product_in_scenarios );
-						var product_is_compatible   = product_intersection.length > 0;
-
-						var variation_is_compatible = true;
-
-						if ( product_is_compatible ) {
-
-							if ( product_type === 'variable' ) {
-
-								var variation_id = component.$self.find( '.single_variation_wrap .variations_button input[name="variation_id"]' ).val();
-
-								// The selections of the current item must not shape the constraints in non-proressive modes, in order to be able to switch the selection.
-								// Variations are only selected with dropdowns, so we don't need to check for that.
-								if ( variation_id > 0 ) {
-
-									var variation_in_scenarios = item_scenario_data[ variation_id ];
-
-									if ( wc_composite_params.script_debug === 'yes' ) {
-										console.log( tabs + 'Variation selection #' + variation_id + ' of ' + component_id + ' in scenarios: ' + product_in_scenarios.toString() );
-									}
-
-									product_intersection    = wc_cp_intersect_safe( product_intersection, variation_in_scenarios );
-									variation_is_compatible = product_intersection.length > 0;
-								}
-							}
-
-						}
-
-						var is_compatible = product_is_compatible && variation_is_compatible;
-
-						if ( is_compatible ) {
-
-							active_scenarios_incl_current = product_intersection;
-
-							if ( wc_composite_params.script_debug === 'yes' ) {
-								console.log( tabs + '	Active scenarios: ' + active_scenarios_incl_current.toString() );
-							}
-
-						} else {
-
-							// The chosen product was found incompatible
-							if ( ! product_is_compatible ) {
-
-								if ( product_id !== '0' ) {
-
-									if ( wc_composite_params.script_debug === 'yes' ) {
-										console.log( tabs + '	Product selection not found in any scenario - breaking out and resetting...' );
-									}
-
-									component.$self.addClass( 'reset' );
-
+						if ( product_id !== null && product_id >= 0 ) {
+	
+							var scenario_data      = composite.get_scenario_data().scenario_data;
+							var item_scenario_data = scenario_data[ component_id ];	
+	
+							// Treat '' optional component selections as 'None' if the component is optional
+							if ( product_id === '' ) {
+								if ( 0 in item_scenario_data ) {
+									product_id = '0';
 								} else {
-
-									if ( wc_composite_params.script_debug === 'yes' ) {
-										console.log( tabs + '	Selection not found in any scenario - breaking out...' );
+									break;
+								}
+							}
+	
+							var product_in_scenarios = item_scenario_data[ product_id ];
+	
+							if ( wc_composite_params.script_debug === 'yes' ) {
+								console.log( tabs + 'Selection #' + product_id + ' of ' + component.get_title() + ' in scenarios: ' + product_in_scenarios.toString() );
+							}
+	
+							scenario_shaping_components_incl_current.push( component_id );
+	
+							var product_intersection    = wc_cp_intersect_safe( active_scenarios_incl_current, product_in_scenarios );
+							var product_is_compatible   = product_intersection.length > 0;
+	
+							var variation_is_compatible = true;
+	
+							if ( product_is_compatible ) {
+	
+								if ( product_type === 'variable' ) {
+	
+									var variation_id = component.$self.find( '.single_variation_wrap .variations_button input[name="variation_id"]' ).val();
+	
+									// The selections of the current item must not shape the constraints in non-proressive modes, in order to be able to switch the selection.
+									// Variations are only selected with dropdowns, so we don't need to check for that.
+									if ( variation_id > 0 ) {
+	
+										var variation_in_scenarios = item_scenario_data[ variation_id ];
+	
+										if ( wc_composite_params.script_debug === 'yes' ) {
+											console.log( tabs + 'Variation selection #' + variation_id + ' of ' + component_id + ' in scenarios: ' + product_in_scenarios.toString() );
+										}
+	
+										product_intersection    = wc_cp_intersect_safe( product_intersection, variation_in_scenarios );
+										variation_is_compatible = product_intersection.length > 0;
 									}
 								}
-
-							} else {
-
-								if ( wc_composite_params.script_debug === 'yes' ) {
-									console.log( tabs + '	Variation selection not found in any scenario - breaking out and resetting...' );
-								}
-
-								component.$self.addClass( 'reset_variation' );
+	
 							}
-
-							return false;
+	
+							var is_compatible = product_is_compatible && variation_is_compatible;
+	
+							if ( is_compatible ) {
+	
+								active_scenarios_incl_current = product_intersection;
+	
+								if ( wc_composite_params.script_debug === 'yes' ) {
+									console.log( tabs + '	Active scenarios: ' + active_scenarios_incl_current.toString() );
+								}
+	
+							} else {
+	
+								// The chosen product was found incompatible
+								if ( ! product_is_compatible ) {
+	
+									if ( product_id !== '0' ) {
+	
+										if ( wc_composite_params.script_debug === 'yes' ) {
+											console.log( tabs + '	Product selection not found in any scenario - breaking out and resetting...' );
+										}
+	
+										component.$self.addClass( 'reset' );
+	
+									} else {
+	
+										if ( wc_composite_params.script_debug === 'yes' ) {
+											console.log( tabs + '	Selection not found in any scenario - breaking out...' );
+										}
+									}
+	
+								} else {
+	
+									if ( wc_composite_params.script_debug === 'yes' ) {
+										console.log( tabs + '	Variation selection not found in any scenario - breaking out and resetting...' );
+									}
+	
+									component.$self.addClass( 'reset_variation' );
+								}
+	
+								response = false;
+							}
+						
 						}
+						
 					}
+					
+					return response;
 
 				} );
 
@@ -2765,65 +2844,72 @@ jQuery( document ).ready( function($) {
 
 					var component_id             = component.component_id;
 					var component_options_select = component.$component_options.find( 'select.component_options_select' );
-
-					var product_id               = component.get_selected_product_id();
-					var product_type             = component.get_selected_product_type();
-
+					
 					if ( firing_step_id != component_id && style !== 'single' ) {
 						return true;
 					}
 
-					// If a disabled option is still selected, val will be null - use this fact to reset options before moving on
-					if ( product_id === null ) {
-						component.$self.addClass( 'reset' );
-
-						if ( wc_composite_params.script_debug === 'yes' ) {
-							console.log( tabs + component.get_title() + ' selection was found disabled.' );
+					var product_ids  = component.get_selected_product_ids();
+					
+					for(var i in product_ids) {
+						
+						var product_id = product_ids[i];
+						
+						var product_type = component.get_selected_product_type(i);
+						
+						// If a disabled option is still selected, val will be null - use this fact to reset options before moving on
+						if ( product_id === null ) {
+							component.$self.addClass( 'reset' );
+	
+							if ( wc_composite_params.script_debug === 'yes' ) {
+								console.log( tabs + component.get_title() + ' selection was found disabled.' );
+							}
 						}
-					}
-
-					// Same with variations in WC 2.3
-					if ( wc_composite_params.is_wc_version_gte_2_3 === 'yes' ) {
-
-						if ( product_type === 'variable' && component.$component_content.find( '.single_variation_wrap .variations_button input[name="variation_id"]' ).val() > 0 ) {
-
-							var attribute_options        = component.$component_summary.find( '.attribute-options' );
-							var attribute_options_length = attribute_options.length;
-
-							if ( attribute_options_length > 0 ) {
-
-								attribute_options.each( function() {
-
-									var selected = $(this).find( 'select option:selected' );
-
-									if ( ! selected.hasClass( 'enabled' ) ) {
-
-										if ( wc_composite_params.script_debug === 'yes' ) {
-											console.log( tabs + component.get_title() + ' variation selections were found disabled.' );
+						
+						// Same with variations in WC 2.3
+						if ( wc_composite_params.is_wc_version_gte_2_3 === 'yes' ) {
+	
+							if ( product_type === 'variable' && component.$component_content.find( '.single_variation_wrap .variations_button input[name="variation_id"]' ).val() > 0 ) {
+										
+								var attribute_options        = component.$component_summary.find( '.attribute-options' );
+								var attribute_options_length = attribute_options.length;
+	
+								if ( attribute_options_length > 0 ) {
+	
+									attribute_options.each( function() {
+	
+										var selected = $(this).find( 'select option:selected' );
+	
+										if ( ! selected.hasClass( 'enabled' ) ) {
+	
+											if ( wc_composite_params.script_debug === 'yes' ) {
+												console.log( tabs + component.get_title() + ' variation selections were found disabled.' );
+											}
+	
+											component.$self.addClass( 'reset_variation' );
+											reset = true;
+											return false;
 										}
-
-										component.$self.addClass( 'reset_variation' );
-										reset = true;
-										return false;
-									}
-								} );
+									} );
+								}
+							}
+	
+						// ...and WC 2.2
+						} else {
+	
+							if ( product_type === 'variable' ) {
+	
+								var current_item_summary_content = component.$self.find( '.component_summary > .content' );
+	
+								// If the selected attributes are not valid, reset options before initializing to prevent attribute match error
+								if ( ! wc_cp_has_valid_default_attributes( current_item_summary_content ) ) {
+									component.$self.addClass( 'reset_variation' );
+									reset = true;
+									return false;
+								}
 							}
 						}
-
-					// ...and WC 2.2
-					} else {
-
-						if ( product_type === 'variable' ) {
-
-							var current_item_summary_content = component.$self.find( '.component_summary > .content' );
-
-							// If the selected attributes are not valid, reset options before initializing to prevent attribute match error
-							if ( ! wc_cp_has_valid_default_attributes( current_item_summary_content ) ) {
-								component.$self.addClass( 'reset_variation' );
-								reset = true;
-								return false;
-							}
-						}
+						
 					}
 
 					// Verify and reset active product selections that were found incompatible
@@ -2836,14 +2922,13 @@ jQuery( document ).ready( function($) {
 							}
 
 							component.$self.addClass( 'resetting' );
-							component_options_select.val( '' ).change();
+							component_options_select.val( '' ).change(); // this is the culprit
 
 							reset = true;
 
 							return false;
 
 						} else {
-
 							component.$self.removeClass( 'reset' );
 							component.$self.removeClass( 'resetting' );
 
@@ -2899,6 +2984,22 @@ jQuery( document ).ready( function($) {
 
 					// Do the work
 					$.each( composite.composite_components, function( index, component ) {
+						
+						if(style == 'progressive') {
+							
+							if(fired_by_step.step_index > index) {
+								
+								if ( wc_composite_params.script_debug === 'yes' ) {
+								
+									console.log('breaking out of ' + component.get_title() + ' because firing step ' + fired_by_step.step_index + ' is bigger than index ' + index);
+									
+								}
+								
+								return true;
+								
+							}
+							
+						}
 
 						var component_id    = component.component_id;
 						var summary_content = component.$self.find( '.component_summary > .content' );
@@ -2964,7 +3065,7 @@ jQuery( document ).ready( function($) {
 						// Disable incompatible products
 
 						component.$component_options.find( 'select.component_options_select option' ).each( function() {
-
+							
 							var product_id = $(this).val();
 
 							// The '' option cannot be disabled - if an option must be selected the add to cart button will be hidden and a message will be shown
@@ -2996,6 +3097,38 @@ jQuery( document ).ready( function($) {
 									if ( wc_composite_params.script_debug === 'yes' ) {
 										console.log( tabs + '		Selection disabled.' );
 									}
+									
+									if($(this).is(':selected')) {
+										
+										var selected_option = $(this);
+										
+										if($(this).parent().find('option:selected').length > 1) {
+											
+											$(this).parent().find('option:selected').each(function(index) {
+											
+												if(selected_option.val() == $(this).val()) {
+													
+													component.$component_data.eq(index).remove();
+													
+													$(this).prop('selected', false).parent().trigger('change');
+													
+												}
+												
+											});
+											
+										}
+										
+										else if($(this).parent().find('option:selected[value=""]').length) {
+											
+											component.$component_data.remove();
+											
+											$(this).parent().find('option:selected[value=""]').prop('selected', true).parent().trigger('change');
+											
+										}
+										
+										$(this).prop('selected', false);
+										
+									}
 
 									$(this).prop( 'disabled', 'disabled' ).trigger( 'wc-composite-selection-incompatible' );
 									component.$self.find( '#component_option_thumbnail_' + $(this).val() ).addClass( 'disabled' );
@@ -3010,135 +3143,141 @@ jQuery( document ).ready( function($) {
 									component.$self.find( '#component_option_thumbnail_' + $(this).val() ).removeClass( 'disabled' );
 								}
 							}
-						} );
+						});
+						
+						var product_ids = component.get_selected_product_ids();
+						
+						for(var i in product_ids) {
+							
+							var product_id = product_ids[i];
+							
+							var product_type = component.get_selected_product_type(i);
+							
+							if ( product_type === 'variable' ) {
 
-						// Disable incompatible variations
-
-						var product_type = component.get_selected_product_type();
-
-						if ( product_type === 'variable' ) {
-
-							// Note the variation id
-							var variation_input    = summary_content.find( '.single_variation_wrap .variations_button input[name="variation_id"]' );
-							var variation_input_id = variation_input.val();
-							var variation_valid    = variation_input_id > 0 ? false : true;
-
-							if ( wc_composite_params.script_debug === 'yes' ) {
-								console.log( tabs + '		Checking variations...' );
-							}
-
-							if ( variation_input_id > 0 ) {
+								// Note the variation id
+								var variation_input    = summary_content.find( '.single_variation_wrap .variations_button input[name="variation_id"]' );
+								var variation_input_id = variation_input.val();
+								var variation_valid    = variation_input_id > 0 ? false : true;
+	
 								if ( wc_composite_params.script_debug === 'yes' ) {
-									console.log( tabs + '			--- Stored variation is #' + variation_input_id );
+									console.log( tabs + '		Checking variations...' );
 								}
-							}
-
-							// Get all variations
-							var product_variations = component.$component_data.data( 'product_variations' );
-
-							var product_variations_in_scenario = [];
-
-							for ( var i in product_variations ) {
-
-								var variation_id           = product_variations[ i ].variation_id;
-								var variation_in_scenarios = item_scenario_data[ variation_id ];
-								var is_compatible          = false;
-
-								if ( wc_composite_params.script_debug === 'yes' ) {
-									console.log( tabs + '			Checking variation #' + variation_id + ':' );
-									console.log( tabs + '			Selection in scenarios: ' + variation_in_scenarios.toString() );
-								}
-
-								for ( var k in variation_in_scenarios ) {
-
-									var scenario_id = variation_in_scenarios[ k ];
-
-									if ( $.inArray( scenario_id, active_scenarios ) > -1 ) {
-										is_compatible = true;
-										break;
+	
+								if ( variation_input_id > 0 ) {
+									if ( wc_composite_params.script_debug === 'yes' ) {
+										console.log( tabs + '			--- Stored variation is #' + variation_input_id );
 									}
 								}
-
-								// In WC 2.3, copy all variation objects but set the variation_is_active property to false in order to disable the attributes of incompatible variations
-								if ( wc_composite_params.is_wc_version_gte_2_3 === 'yes' ) {
-
-									var variation = $.extend( true, {}, product_variations[ i ] );
-
-									var variation_has_empty_attributes = false;
-
-									if ( ! is_compatible ) {
-
-										variation.variation_is_active = false;
-
-										// do not include incompatible variations with empty attributes - they can break stuff when prioritized
-										for ( var attr_name in variation.attributes ) {
-											if ( variation.attributes[ attr_name ] === '' ) {
-												variation_has_empty_attributes = true;
-												break;
+	
+								// Get all variations
+								var product_variations = component.$component_data.eq(i).data( 'product_variations' );
+	
+								var product_variations_in_scenario = [];
+	
+								for ( var i in product_variations ) {
+	
+									var variation_id           = product_variations[ i ].variation_id;
+									var variation_in_scenarios = item_scenario_data[ variation_id ];
+									var is_compatible          = false;
+	
+									if ( wc_composite_params.script_debug === 'yes' ) {
+										console.log( tabs + '			Checking variation #' + variation_id + ':' );
+										console.log( tabs + '			Selection in scenarios: ' + variation_in_scenarios.toString() );
+									}
+	
+									for ( var k in variation_in_scenarios ) {
+	
+										var scenario_id = variation_in_scenarios[ k ];
+	
+										if ( $.inArray( scenario_id, active_scenarios ) > -1 ) {
+											is_compatible = true;
+											break;
+										}
+									}
+	
+									// In WC 2.3, copy all variation objects but set the variation_is_active property to false in order to disable the attributes of incompatible variations
+									if ( wc_composite_params.is_wc_version_gte_2_3 === 'yes' ) {
+	
+										var variation = $.extend( true, {}, product_variations[ i ] );
+	
+										var variation_has_empty_attributes = false;
+	
+										if ( ! is_compatible ) {
+	
+											variation.variation_is_active = false;
+	
+											// do not include incompatible variations with empty attributes - they can break stuff when prioritized
+											for ( var attr_name in variation.attributes ) {
+												if ( variation.attributes[ attr_name ] === '' ) {
+													variation_has_empty_attributes = true;
+													break;
+												}
 											}
-										}
-
-										if ( wc_composite_params.script_debug === 'yes' ) {
-											console.log( tabs + '			Variation disabled.' );
-										}
-									} else {
-
-										if ( wc_composite_params.script_debug === 'yes' ) {
-											console.log( tabs + '			Variation enabled.' );
-										}
-
-										if ( parseInt( variation_id ) === parseInt( variation_input_id ) ) {
-											variation_valid = true;
+	
 											if ( wc_composite_params.script_debug === 'yes' ) {
-												console.log( tabs + '			--- Stored variation is valid.' );
+												console.log( tabs + '			Variation disabled.' );
 											}
-										}
-									}
-
-									if ( ! variation_has_empty_attributes ) {
-
-										product_variations_in_scenario.push( variation );
-									}
-
-								// In WC 2.2/2.1, copy only compatible variations
-								} else {
-									if ( is_compatible ) {
-
-										product_variations_in_scenario.push( product_variations[i] );
-
-										if ( wc_composite_params.script_debug === 'yes' ) {
-											console.log( tabs + '			Variation enabled.' );
-										}
-
-										if ( parseInt( variation_id ) === parseInt( variation_input_id ) ) {
-											variation_valid = true;
+										} else {
+	
 											if ( wc_composite_params.script_debug === 'yes' ) {
-												console.log( tabs + '			--- Stored variation is valid.' );
+												console.log( tabs + '			Variation enabled.' );
+											}
+	
+											if ( parseInt( variation_id ) === parseInt( variation_input_id ) ) {
+												variation_valid = true;
+												if ( wc_composite_params.script_debug === 'yes' ) {
+													console.log( tabs + '			--- Stored variation is valid.' );
+												}
 											}
 										}
-
+	
+										if ( ! variation_has_empty_attributes ) {
+	
+											product_variations_in_scenario.push( variation );
+										}
+	
+									// In WC 2.2/2.1, copy only compatible variations
 									} else {
-										if ( wc_composite_params.script_debug === 'yes' ) {
-											console.log( tabs + '			Variation disabled.' );
+										if ( is_compatible ) {
+	
+											product_variations_in_scenario.push( product_variations[i] );
+	
+											if ( wc_composite_params.script_debug === 'yes' ) {
+												console.log( tabs + '			Variation enabled.' );
+											}
+	
+											if ( parseInt( variation_id ) === parseInt( variation_input_id ) ) {
+												variation_valid = true;
+												if ( wc_composite_params.script_debug === 'yes' ) {
+													console.log( tabs + '			--- Stored variation is valid.' );
+												}
+											}
+	
+										} else {
+											if ( wc_composite_params.script_debug === 'yes' ) {
+												console.log( tabs + '			Variation disabled.' );
+											}
 										}
 									}
 								}
-							}
-
-							// Put filtered variations in place
-							summary_content.data( 'product_variations', product_variations_in_scenario );
-
-							if ( firing_step_id != component_id ) {
-								summary_content.trigger( 'update_variation_values', [ product_variations_in_scenario ] );
-							}
-
-							if ( ! variation_valid ) {
-								if ( wc_composite_params.script_debug === 'yes' ) {
-									console.log( tabs + '			--- Stored variation was NOT found.' );
+	
+								// Put filtered variations in place
+								summary_content.data( 'product_variations', product_variations_in_scenario );
+	
+								if ( firing_step_id != component_id ) {
+									summary_content.trigger( 'update_variation_values', [ product_variations_in_scenario ] );
 								}
-								composite.triggered_by_step = firing_step_id;
-								summary_content.find( '.reset_variations' ).trigger( 'click' );
+	
+								if ( ! variation_valid ) {
+									if ( wc_composite_params.script_debug === 'yes' ) {
+										console.log( tabs + '			--- Stored variation was NOT found.' );
+									}
+									composite.triggered_by_step = firing_step_id;
+									summary_content.find( '.reset_variations' ).trigger( 'click' );
+								}
 							}
+							
 						}
 
 					} );
@@ -3262,18 +3401,25 @@ jQuery( document ).ready( function($) {
 						navigation.find( '.next' ).addClass( 'invisible' );
 
 						if ( next_step && next_step.get_markup().hasClass( 'toggled' ) ) {
-							next_step.get_markup().find( '.component_title' ).addClass( 'inactive' );
+							next_step.block_step();
 						}
 
 						if ( prev_step && prev_step.is_component() ) {
 
-							var product_id = prev_step.get_component().get_selected_product_id();
+							var product_ids = prev_step.get_component().get_selected_product_ids();
+							
+							for(i in product_ids) {
+								
+								var product_id = product_ids[i];
+								
+								if ( product_id > 0 || product_id === '0' || product_id === '' && prev_step.get_component().is_optional() ) {
 
-							if ( product_id > 0 || product_id === '0' || product_id === '' && prev_step.get_component().is_optional() ) {
-
-								form.find( '.composite_navigation.paged .prev' ).html( wc_composite_params.i18n_previous_step.replace( '%s', prev_step.get_title() ) );
-								form.find( '.composite_navigation.paged .prev' ).removeClass( 'invisible' );
+									form.find( '.composite_navigation.paged .prev' ).html( wc_composite_params.i18n_previous_step.replace( '%s', prev_step.get_title() ) );
+									form.find( '.composite_navigation.paged .prev' ).removeClass( 'invisible' );
+								}
+								
 							}
+							
 						}
 
 						if ( current_step.is_component() ) {
@@ -3402,7 +3548,7 @@ jQuery( document ).ready( function($) {
 					}
 
 				} );
-
+	
 			},
 
 			/**
@@ -3429,154 +3575,162 @@ jQuery( document ).ready( function($) {
 					var item_summary       = composite_summary.find( '.summary_element_' + item_id );
 					var item_summary_outer = item_summary.find( '.summary_element_wrapper' );
 					var item_summary_inner = item_summary.find( '.summary_element_wrapper_inner' );
-
-					var product_type       = component.get_selected_product_type();
-					var product_id         = component.get_selected_product_id();
-					var qty                = parseInt( item.find( '.component_wrap input.qty' ).val() );
-
-					var title              = '';
-					var select             = '';
-					var image              = '';
-
-					var product_title      = '';
-					var product_quantity   = '';
-					var product_meta       = '';
-
+					
+					var product_ids         = component.get_selected_product_ids();
+					
 					// lock height if animating
 					if ( composite_summary.is( ':visible' ) ) {
 						var load_height = item_summary_inner.outerHeight();
 						item_summary_outer.css( 'height', load_height );
 					}
-
-					// Get title and image
-					if ( product_type === 'none' ) {
-
-						if ( component.is_optional() ) {
-							title = $( '#component_options_' + item_id + ' option.none' ).data( 'title' );
-						}
-
-					} else if ( product_type === 'variable' ) {
-
-						if ( product_id > 0 && ( qty > 0 || qty === 0 ) ) {
-
-							product_title    = $( '#component_options_' + item_id + ' option:selected' ).data( 'title' );
-							product_quantity = ' <strong>&times; ' + qty + '</strong>';
-							product_meta     = wc_cp_get_variable_product_attributes_description( item.find( '.variations' ) );
-
-							if ( product_meta ) {
-								product_meta = ' (' + product_meta + ')';
+					
+					for(var i in product_ids) {
+						
+						var product_id = product_ids[i];
+						
+						var product_type       = component.get_selected_product_type();
+					
+						var qty                = parseInt( item.find( '.component_wrap input.qty' ).val() );
+	
+						var title              = '';
+						var select             = '';
+						var image              = '';
+	
+						var product_title      = '';
+						var product_quantity   = '';
+						var product_meta       = '';
+	
+						// Get title and image
+						if ( product_type === 'none' ) {
+	
+							if ( component.is_optional() ) {
+								title = $( '#component_options_' + item_id + ' option.none' ).data( 'title' );
 							}
-
-							title = product_title + product_meta + product_quantity;
-
-							image = item.find( '.composited_product_image img' ).attr( 'src' );
-
-							if ( typeof( image ) === 'undefined' ) {
+	
+						} else if ( product_type === 'variable' ) {
+	
+							if ( product_id > 0 && ( qty > 0 || qty === 0 ) ) {
+	
+								product_title    = $( '#component_options_' + item_id + ' option:selected' ).data( 'title' );
+								product_quantity = ' <strong>&times; ' + qty + '</strong>';
+								product_meta     = wc_cp_get_variable_product_attributes_description( item.find( '.variations' ) );
+	
+								if ( product_meta ) {
+									product_meta = ' (' + product_meta + ')';
+								}
+	
+								title = product_title + product_meta + product_quantity;
+	
+								image = item.find( '.composited_product_image img' ).attr( 'src' );
+	
+								if ( typeof( image ) === 'undefined' ) {
+									image = item.find( '#component_options_' + item_id + ' option:selected' ).data( 'image_src' );
+								}
+							}
+	
+						} else if ( product_type === 'bundle' ) {
+	
+							if ( product_id > 0 && ( qty > 0 || qty === 0 ) ) {
+	
+								var selected_bundled_products = '';
+								var bundled_products_num      = 0;
+	
+								item.find( '.bundled_product .cart' ).each( function() {
+	
+									if ( $(this).data( 'quantity' ) > 0 )
+										bundled_products_num++;
+								} );
+	
+								if ( bundled_products_num == 0 ) {
+	
+									title = wc_composite_params.i18n_none;
+	
+								} else {
+	
+									item.find( '.bundled_product .cart' ).each( function() {
+	
+										if ( $(this).data( 'quantity' ) > 0 ) {
+	
+											var item_meta = wc_cp_get_variable_product_attributes_description( $(this).find( '.variations' ) );
+	
+											if ( item_meta ) {
+												item_meta = ' (' + item_meta + ')';
+											}
+	
+											selected_bundled_products = selected_bundled_products + $(this).data( 'title' ) + item_meta + ' <strong>&times; ' + parseInt( $(this).data( 'quantity' ) * qty ) + '</strong></br>';
+										}
+									} );
+	
+									title = selected_bundled_products;
+								}
+	
+								image = item.find( '#component_options_' + item_id + ' option:selected' ).data( 'image_src' );
+							}
+	
+						} else {
+	
+							if ( product_id > 0 ) {
+	
+								product_title    = $( '#component_options_' + item_id + ' option:selected' ).data( 'title' );
+								product_quantity = isNaN( qty ) ? '' : '<strong>&times; ' + qty + '</strong>';
+	
+								title = product_title + ' ' + product_quantity;
+	
 								image = item.find( '#component_options_' + item_id + ' option:selected' ).data( 'image_src' );
 							}
 						}
-
-					} else if ( product_type === 'bundle' ) {
-
-						if ( product_id > 0 && ( qty > 0 || qty === 0 ) ) {
-
-							var selected_bundled_products = '';
-							var bundled_products_num      = 0;
-
-							item.find( '.bundled_product .cart' ).each( function() {
-
-								if ( $(this).data( 'quantity' ) > 0 )
-									bundled_products_num++;
-							} );
-
-							if ( bundled_products_num == 0 ) {
-
-								title = wc_composite_params.i18n_none;
-
+	
+						// Selection text
+						if ( title ) {
+	
+							if ( item.hasClass( 'static') ) {
+								select = '<a href="">' + wc_composite_params.i18n_summary_static_component + '</a>';
 							} else {
-
-								item.find( '.bundled_product .cart' ).each( function() {
-
-									if ( $(this).data( 'quantity' ) > 0 ) {
-
-										var item_meta = wc_cp_get_variable_product_attributes_description( $(this).find( '.variations' ) );
-
-										if ( item_meta ) {
-											item_meta = ' (' + item_meta + ')';
-										}
-
-										selected_bundled_products = selected_bundled_products + $(this).data( 'title' ) + item_meta + ' <strong>&times; ' + parseInt( $(this).data( 'quantity' ) * qty ) + '</strong></br>';
-									}
-								} );
-
-								title = selected_bundled_products;
+								select = '<a href="">' + wc_composite_params.i18n_summary_filled_component + '</a>';
 							}
-
-							image = item.find( '#component_options_' + item_id + ' option:selected' ).data( 'image_src' );
-						}
-
-					} else {
-
-						if ( product_id > 0 ) {
-
-							product_title    = $( '#component_options_' + item_id + ' option:selected' ).data( 'title' );
-							product_quantity = isNaN( qty ) ? '' : '<strong>&times; ' + qty + '</strong>';
-
-							title = product_title + ' ' + product_quantity;
-
-							image = item.find( '#component_options_' + item_id + ' option:selected' ).data( 'image_src' );
-						}
-					}
-
-					// Selection text
-					if ( title ) {
-
-						if ( item.hasClass( 'static') ) {
-							select = '<a href="">' + wc_composite_params.i18n_summary_static_component + '</a>';
+	
 						} else {
-							select = '<a href="">' + wc_composite_params.i18n_summary_filled_component + '</a>';
+							select = '<a href="">' + wc_composite_params.i18n_summary_empty_component + '</a>';
 						}
-
-					} else {
-						select = '<a href="">' + wc_composite_params.i18n_summary_empty_component + '</a>';
-					}
-
-
-					// Update title
-					if ( title ) {
-						item_summary.find( '.summary_element_selection' ).html( '<span class="summary_element_content">' + title + '</span><span class="summary_element_content summary_element_selection_prompt">' + select + '</span>' );
-					} else {
-						item_summary.find( '.summary_element_selection' ).html( '<span class="summary_element_content summary_element_selection_prompt">' + select + '</span>' );
-					}
-
-					if ( $(this).hasClass( 'active' ) ) {
-						item_summary.find( '.summary_element_selection_prompt' ).hide();
-					}
-
-					// Update image
-					wc_cp_update_summary_element_image( item_summary, image );
-
-
-					// Update price
-					if ( price_data[ 'per_product_pricing' ] === true && product_id > 0 && qty > 0 && component.get_step().validate_inputs() ) {
-
-						var price         = ( parseFloat( price_data[ 'prices' ][ item_id ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id ] ) ) * qty;
-						var regular_price = ( parseFloat( price_data[ 'regular_prices' ][ item_id ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id ] ) ) * qty;
-
-						var price_format         = wc_cp_woocommerce_number_format( wc_cp_number_format( price ) );
-						var regular_price_format = wc_cp_woocommerce_number_format( wc_cp_number_format( regular_price ) );
-
-						if ( regular_price > price ) {
-							item_summary.find( '.summary_element_price' ).html( '<span class="price summary_element_content"><del>' + regular_price_format + '</del> <ins>' + price_format + '</ins></span>' );
+	
+	
+						// Update title
+						if ( title ) {
+							item_summary.find( '.summary_element_selection' ).html( '<span class="summary_element_content">' + title + '</span><span class="summary_element_content summary_element_selection_prompt">' + select + '</span>' );
 						} else {
-							item_summary.find( '.summary_element_price' ).html( '<span class="price summary_element_content">' + price_format + '</span>' );
+							item_summary.find( '.summary_element_selection' ).html( '<span class="summary_element_content summary_element_selection_prompt">' + select + '</span>' );
 						}
-
-					} else {
-
-						item_summary.find( '.summary_element_price' ).html( '' );
+	
+						if ( $(this).hasClass( 'active' ) ) {
+							item_summary.find( '.summary_element_selection_prompt' ).hide();
+						}
+	
+						// Update image
+						wc_cp_update_summary_element_image( item_summary, image );
+	
+	
+						// Update price
+						if ( price_data[ 'per_product_pricing' ] === true && product_id > 0 && qty > 0 && component.get_step().validate_inputs() ) {
+	
+							var price         = ( parseFloat( price_data[ 'prices' ][ item_id ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id ] ) ) * qty;
+							var regular_price = ( parseFloat( price_data[ 'regular_prices' ][ item_id ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id ] ) ) * qty;
+	
+							var price_format         = wc_cp_woocommerce_number_format( wc_cp_number_format( price ) );
+							var regular_price_format = wc_cp_woocommerce_number_format( wc_cp_number_format( regular_price ) );
+	
+							if ( regular_price > price ) {
+								item_summary.find( '.summary_element_price' ).html( '<span class="price summary_element_content"><del>' + regular_price_format + '</del> <ins>' + price_format + '</ins></span>' );
+							} else {
+								item_summary.find( '.summary_element_price' ).html( '<span class="price summary_element_content">' + price_format + '</span>' );
+							}
+	
+						} else {
+	
+							item_summary.find( '.summary_element_price' ).html( '' );
+						}
+						
 					}
-
+					
 					// Send an event to allow 3rd party code to add data to the summary
 					item.trigger( 'wc-composite-component-update-summary-content' );
 
@@ -3636,6 +3790,223 @@ jQuery( document ).ready( function($) {
 				}, 50 );
 
 			},
+			
+			/* validates components for use in tasks */
+			
+			validate_components: function() {
+				
+				var composite      = this;
+				var form           = composite.$composite_form;
+				var composite_data = composite.$composite_data;
+				var all_set = true;
+				
+				// Validate components
+				$.each( composite.composite_components, function( index, component ) {
+
+					var component_id    = component.component_id;
+					var item            = component.$self;
+					var item_id         = component_id;
+					var form_data       = composite_data.find( '.composite_wrap .composite_button .form_data_' + item_id);
+					
+					component.$component_data.each(function( index, component_data ) {
+						
+						var products = component.get_selected_product_ids();
+						
+						var quantity  = $(component_data).find( '.component_wrap input.qty' ).val();
+						
+						for(var i in products) {
+							
+							product_id = products[i];
+							
+							var variation_id = form_data.find( 'input.variation_input[name="wccp_variation_id[' + component_id + '][' + product_id + ']"]' ).val();
+							
+							var product_type = component.get_selected_product_type(i);
+	
+							if ( typeof( product_type ) === 'undefined' || product_type == '' ) {
+								all_set = false;
+							} else if ( ! ( product_id > 0 ) && ! component.is_optional() ) {
+								all_set = false;
+							} else if ( product_type !== 'none' && quantity === '' ) {
+								all_set = false;
+							} else if ( product_type === 'variable' && ( typeof( variation_id ) === 'undefined' || component.$component_data.eq(i).data( 'component_set' ) == false ) ) {
+								all_set = false;
+							} else if ( product_type !== 'variable' && product_type !== 'simple' && product_type !== 'none' && component.$component_data.eq(i).data( 'component_set' ) == false ) {
+								all_set = false;
+							} else if ( ! component.is_in_stock() ) {
+								out_of_stock.push( wc_composite_params.i18n_insufficient_item_stock.replace( '%s', $( '#component_options_' + item_id + ' option:selected' ).data( 'title' ) ).replace( '%v', component.get_title() ) );
+								all_set = false;
+							}
+							
+						}
+					
+					});
+
+				} );
+				
+				return all_set;
+				
+			},
+			
+			/* get component quantity for use in tasks */
+				
+			get_components_quantity: function() {
+				
+				var composite      = this;
+				var form           = composite.$composite_form;
+				var composite_data = composite.$composite_data;
+				var component_quantity = {};
+				
+				// Validate components
+				$.each( composite.composite_components, function( index, component ) {
+
+					var component_id    = component.component_id;
+					var item            = component.$self;
+					var item_id         = component_id;
+					var form_data       = composite_data.find( '.composite_wrap .composite_button .form_data_' + item_id);
+					
+					component.$component_data.each(function( index, component_data ) {
+						
+						var products = component.get_selected_product_ids();
+						
+						var quantity  = $(component_data).find( '.component_wrap input.qty' ).val();
+						
+						for(var i in products) {
+							
+							component.$component_data.eq(i).data( 'component_set', true );
+							
+							if ( quantity > 0 ) {
+								
+								component_quantity[ item_id ] = parseInt( quantity );
+								
+							} else {
+								
+								component_quantity[ item_id ] = 0;
+								
+							}
+							
+						}
+					
+					});
+
+				} );
+				
+				return component_quantity;
+				
+			},
+			
+			/* get prices for use in tasks */
+			
+			get_prices: function() {
+				
+				var composite      = this;
+				var form           = composite.$composite_form;
+				var composite_data = composite.$composite_data;
+				var price_data = composite_data.data( 'price_data' );
+				
+				price_data[ 'prices_excl_tax' ] = [];
+				price_data[ 'prices_incl_tax' ] = [];
+				price_data[ 'addons_prices_incl_tax' ] = [];
+				price_data[ 'addons_prices_excl_tax' ] = [];
+				price_data[ 'regular_prices_incl_tax' ] = [];
+				price_data[ 'regular_prices_excl_tax' ] = [];
+				
+				// Validate components
+				$.each( composite.composite_components, function( index, component ) {
+
+					var component_id    = component.component_id;
+					var item            = component.$self;
+					var item_id         = component_id;
+					var form_data       = composite_data.find( '.composite_wrap .composite_button .form_data_' + item_id);
+
+					// Copy prices
+					
+					price_data[ 'prices' ][ item_id ] = 0;
+					price_data[ 'prices_incl_tax' ][ item_id ] = 0;
+					price_data[ 'prices_excl_tax' ][ item_id ] = 0;
+					price_data[ 'addons_prices' ][ item_id ] = 0;
+					price_data[ 'addons_prices_incl_tax' ][ item_id ] = 0;
+					price_data[ 'addons_prices_excl_tax' ][ item_id ] = 0;
+					price_data[ 'regular_prices' ][ item_id ] = 0;
+					price_data[ 'regular_prices_incl_tax' ][ item_id ] = 0;
+					price_data[ 'regular_prices_excl_tax' ][ item_id ] = 0;
+					
+					item.find( '.addon' ).each( function() {
+	
+						var addon_cost = 0;
+						var addon_cost_incl_tax = 0;
+						var addon_cost_excl_tax = 0;
+
+						if ( $(this).is('.addon-custom-price') ) {
+							addon_cost = addon_cost_incl_tax = addon_cost_excl_tax = $(this).val();
+						} else if ( $(this).is('.addon-input_multiplier') ) {
+							if( isNaN( $(this).val() ) || $(this).val() == '' ) { // Number inputs return blank when invalid
+								$(this).val( '' );
+								$(this).closest('p').find('.addon-alert').show();
+							} else {
+								if( $(this).val() != '' ) {
+									$(this).val( Math.ceil( $(this).val() ) );
+								}
+								$(this).closest('p').find('.addon-alert').hide();
+							}
+							addon_cost = $(this).data('price') * $(this).val();
+							addon_cost_incl_tax = $(this).data('price_incl_tax') * $(this).val();
+							addon_cost_excl_tax = $(this).data('price_excl_tax') * $(this).val();
+						} else if ( $(this).is('.addon-checkbox, .addon-radio') ) {
+							if ( $(this).is(':checked') ) {
+								addon_cost = $(this).data('price');
+								addon_cost_incl_tax = $(this).data('price_incl_tax');
+								addon_cost_excl_tax = $(this).data('price_excl_tax');
+							}
+						} else if ( $(this).is('.addon-select') ) {
+							if ( $(this).val() ) {
+								addon_cost = $(this).find('option:selected').data('price');
+								addon_cost_incl_tax = $(this).find('option:selected').data('price_incl_tax');
+								addon_cost_excl_tax = $(this).find('option:selected').data('price_excl_tax');
+							}
+						} else {
+							if ( $(this).val() ) {
+								addon_cost = $(this).data('price');
+								addon_cost_incl_tax = $(this).data('price_incl_tax');
+								addon_cost_excl_tax = $(this).data('price_excl_tax');
+							}	
+						}
+
+						if ( ! addon_cost ) {
+							addon_cost = 0;
+							addon_cost_incl_tax = 0;
+							addon_cost_excl_tax = 0;
+						}
+
+						price_data[ 'addons_prices' ][ item_id ] = parseFloat( price_data[ 'addons_prices' ][ item_id ] ) + parseFloat( addon_cost );
+						price_data[ 'addons_prices_incl_tax' ][ item_id ] = parseFloat( price_data[ 'addons_prices_incl_tax' ][ item_id ] ) + parseFloat( addon_cost_incl_tax );
+						price_data[ 'addons_prices_excl_tax' ][ item_id ] = parseFloat( price_data[ 'addons_prices_excl_tax' ][ item_id ] ) + parseFloat( addon_cost_excl_tax );
+
+					} );
+					
+					component.$component_data.each(function( index, component_data ) {
+						
+						price_data[ 'prices' ][ item_id ]         += parseFloat( $(this).data( 'price' ) );
+						price_data[ 'regular_prices' ][ item_id ] += parseFloat( $(this).data( 'regular_price' ) );
+						
+						var custom_data = $.isArray($(this).data('custom')) ? $.extend({}, $(this).data('custom')) : $(this).data('custom');
+						
+						if(typeof custom_data !== 'undefined' && !$.isEmptyObject(custom_data)) {
+							
+							price_data[ 'prices_incl_tax' ][ item_id ] += parseFloat( custom_data.all_prices.price.incl );
+							price_data[ 'prices_excl_tax' ][ item_id ] += parseFloat( custom_data.all_prices.price.excl );
+							
+							price_data[ 'regular_prices_incl_tax' ][ item_id ] += parseFloat( custom_data.all_prices.regular_price.incl );
+							price_data[ 'regular_prices_excl_tax' ][ item_id ] += parseFloat( custom_data.all_prices.regular_price.excl );
+							
+						}
+					
+					});
+
+				} );
+				
+				return price_data;
+				
+			},
 
 			/**
 			 * Updates the composite totals and review/summary section + enables/disables the add-to-cart button
@@ -3651,12 +4022,11 @@ jQuery( document ).ready( function($) {
 				if ( typeof( update_only ) === 'undefined' ) {
 					update_only = false;
 				}
-
-				var all_set            = true;
-				var component_quantity = {};
+				
+				var all_set = this.validate_components();
+				var component_quantity = this.get_components_quantity();
+				var price_data = this.get_prices();
 				var out_of_stock       = [];
-
-				var price_data         = composite_data.data( 'price_data' );
 				var progression_style  = composite_data.data( 'progression_style' );
 				var style              = composite.composite_layout;
 
@@ -3675,89 +4045,6 @@ jQuery( document ).ready( function($) {
 					return false;
 				}
 
-				// Validate components
-				$.each( composite.composite_components, function( index, component ) {
-
-					var component_id    = component.component_id;
-					var item            = component.$self;
-					var item_id         = component_id;
-					var form_data       = composite_data.find( '.composite_wrap .composite_button .form_data_' + item_id );
-
-					// Verify submit form input data
-
-					var product_input   = item.find( '#component_options_' + item_id ).val();
-					var quantity_input  = item.find( '.component_wrap input.qty' ).val();
-					var variation_input = form_data.find( 'input.variation_input' ).val();
-
-					// Copy prices
-
-					price_data[ 'prices' ][ item_id ]         = parseFloat( component.$component_data.data( 'price' ) );
-					price_data[ 'regular_prices' ][ item_id ] = parseFloat( component.$component_data.data( 'regular_price' ) );
-
-					// Save addons prices
-					price_data[ 'addons_prices' ][ item_id ] = 0;
-
-					item.find( '.addon' ).each( function() {
-
-						var addon_cost = 0;
-
-						if ( $(this).is('.addon-custom-price') ) {
-							addon_cost = $(this).val();
-						} else if ( $(this).is('.addon-input_multiplier') ) {
-							if( isNaN( $(this).val() ) || $(this).val() == '' ) { // Number inputs return blank when invalid
-								$(this).val( '' );
-								$(this).closest('p').find('.addon-alert').show();
-							} else {
-								if( $(this).val() != '' ) {
-									$(this).val( Math.ceil( $(this).val() ) );
-								}
-								$(this).closest('p').find('.addon-alert').hide();
-							}
-							addon_cost = $(this).data('price') * $(this).val();
-						} else if ( $(this).is('.addon-checkbox, .addon-radio') ) {
-							if ( $(this).is(':checked') )
-								addon_cost = $(this).data('price');
-						} else if ( $(this).is('.addon-select') ) {
-							if ( $(this).val() )
-								addon_cost = $(this).find('option:selected').data('price');
-						} else {
-							if ( $(this).val() )
-								addon_cost = $(this).data('price');
-						}
-
-						if ( ! addon_cost )
-							addon_cost = 0;
-
-						price_data[ 'addons_prices' ][ item_id ] = parseFloat( price_data[ 'addons_prices' ][ item_id ] ) + parseFloat( addon_cost );
-
-					} );
-
-					var product_type = component.get_selected_product_type();
-
-					if ( typeof( product_type ) === 'undefined' || product_type == '' ) {
-						all_set = false;
-					} else if ( ! ( product_input > 0 ) && ! component.is_optional() ) {
-						all_set = false;
-					} else if ( product_type !== 'none' && quantity_input === '' ) {
-						all_set = false;
-					} else if ( product_type === 'variable' && ( typeof( variation_input ) === 'undefined' || component.$component_data.data( 'component_set' ) == false ) ) {
-						all_set = false;
-					} else if ( product_type !== 'variable' && product_type !== 'simple' && product_type !== 'none' && component.$component_data.data( 'component_set' ) == false ) {
-						all_set = false;
-					} else if ( ! component.is_in_stock() ) {
-						out_of_stock.push( wc_composite_params.i18n_insufficient_item_stock.replace( '%s', $( '#component_options_' + item_id + ' option:selected' ).data( 'title' ) ).replace( '%v', component.get_title() ) );
-						all_set = false;
-					} else {
-						// Update quantity data for price calculations
-						if ( quantity_input > 0 ) {
-							component_quantity[ item_id ] = parseInt( quantity_input );
-						} else {
-							component_quantity[ item_id ] = 0;
-						}
-					}
-
-				} );
-
 				// Update paged layout summary state
 				composite.update_summary();
 
@@ -3771,27 +4058,53 @@ jQuery( document ).ready( function($) {
 
 					if ( price_data[ 'per_product_pricing' ] == true ) {
 
-						price_data[ 'total' ]         = 0;
-						price_data[ 'regular_total' ] = 0;
+						price_data[ 'total' ]         	= 0;
+						price_data[ 'total_incl_tax' ]  = 0;
+						price_data[ 'total_excl_tax' ]  = 0;
+						price_data[ 'regular_total' ] 	= 0;
+						price_data[ 'regular_total_incl_tax' ] 	= 0;
+						price_data[ 'regular_total_excl_tax' ] 	= 0;
 
 						for ( var item_id_ppp in price_data[ 'prices' ] ) {
 
 							price_data[ 'total' ]         += ( parseFloat( price_data[ 'prices' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							price_data[ 'total_incl_tax' ]         += ( parseFloat( price_data[ 'prices_incl_tax' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices_incl_tax' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							price_data[ 'total_excl_tax' ]         += ( parseFloat( price_data[ 'prices_excl_tax' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices_excl_tax' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							
 							price_data[ 'regular_total' ] += ( parseFloat( price_data[ 'regular_prices' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							price_data[ 'regular_total_incl_tax' ] += ( parseFloat( price_data[ 'regular_prices_incl_tax' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices_incl_tax' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							price_data[ 'regular_total_excl_tax' ] += ( parseFloat( price_data[ 'regular_prices_excl_tax' ][ item_id_ppp ] ) + parseFloat( price_data[ 'addons_prices_excl_tax' ][ item_id_ppp ] ) ) * component_quantity[ item_id_ppp ];
+							
 						}
 
 						price_data[ 'total' ]         += parseFloat( price_data[ 'base_price' ] );
+						price_data[ 'total_incl_tax' ]         += parseFloat( price_data[ 'base_price_incl_tax' ] );
+						price_data[ 'total_excl_tax' ]         += parseFloat( price_data[ 'base_price_excl_tax' ] );
+						
 						price_data[ 'regular_total' ] += parseFloat( price_data[ 'base_regular_price' ] );
+						price_data[ 'regular_total_incl_tax' ]         += parseFloat( price_data[ 'base_regular_price_incl_tax' ] );
+						price_data[ 'regular_total_excl_tax' ]         += parseFloat( price_data[ 'base_regular_price_excl_tax' ] );
 
 					} else {
 
 						price_data[ 'total' ]         = parseFloat( price_data[ 'base_price' ] );
+						price_data[ 'total_incl_tax' ]         = parseFloat( price_data[ 'base_price_incl_tax' ] );
+						price_data[ 'total_excl_tax' ]         = parseFloat( price_data[ 'base_price_excl_tax' ] );
+						
 						price_data[ 'regular_total' ] = parseFloat( price_data[ 'base_regular_price' ] );
+						price_data[ 'regular_total_incl_tax' ] = parseFloat( price_data[ 'base_regular_price_incl_tax' ] );
+						price_data[ 'regular_total_excl_tax' ] = parseFloat( price_data[ 'base_regular_price_excl_tax' ] );
 
 						for ( var item_id_sp in price_data[ 'addons_prices' ] ) {
 
 							price_data[ 'total' ]         += parseFloat( price_data[ 'addons_prices' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+							price_data[ 'total_incl_tax' ]         = parseFloat( price_data[ 'addons_prices_incl_tax' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+							price_data[ 'total_excl_tax' ]         = parseFloat( price_data[ 'addons_prices_excl_tax' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+							
 							price_data[ 'regular_total' ] += parseFloat( price_data[ 'addons_prices' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+							price_data[ 'regular_total_incl_tax' ] += parseFloat( price_data[ 'addons_prices_incl_tax' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+							price_data[ 'regular_total_excl_tax' ] += parseFloat( price_data[ 'addons_prices_excl_tax' ][ item_id_sp ] ) * component_quantity[ item_id_sp ];
+						
 						}
 					}
 
@@ -3857,6 +4170,7 @@ jQuery( document ).ready( function($) {
 					if ( ! update_only ) {
 						composite.disable_add_to_cart();
 					}
+					
 				}
 
 				// Update summary widget
@@ -3904,6 +4218,124 @@ jQuery( document ).ready( function($) {
 				composite_data.find( '.composite_wrap' ).trigger( 'wc-composite-hide-add-to-cart' );
 
 			},
+			
+			/**
+			 * Builds an array with all Components that require further user input
+			 */
+ 
+			get_pending_components: function() {
+				
+				var composite               = this;
+				var composite_data 			= composite.$composite_data;
+				var pending_components      = [];
+				var progression_style  		= composite_data.data( 'progression_style' );
+			
+				$.each( composite.composite_components, function( index, component ) {
+			
+					var products = component.get_selected_product_ids();
+					
+					for(i in products) {
+						
+						var product_id = parseInt(products[i]);
+						var item_set  = component.$component_data.eq(i).data( 'component_set' );
+					
+						if ( ( ! ( product_id > 0 ) && ! component.is_optional() ) || ( progression_style === 'strict' && component.$self.hasClass( 'blocked' ) ) || item_set == false || typeof( item_set ) === 'undefined' ) {
+				
+							pending_components.push( component.get_title() );
+							
+						}
+						
+					}
+			
+				} );
+			
+				return pending_components;
+				
+			},
+			
+			/**
+			 * Builds an array with all Components that are active
+			 */
+ 
+			get_active_components: function() {
+				
+				var composite               = this;
+				var composite_data 			= composite.$composite_data;
+				var active_components      = [];
+				var progression_style  		= composite_data.data( 'progression_style' );
+			
+				$.each( composite.composite_components, function( index, component ) {
+			
+					var products = component.get_selected_product_ids();
+					
+					for(i in products) {
+						
+						var product_id = parseInt(products[i]);
+						var item_set  = component.$component_data.eq(i).data( 'component_set' );
+					
+						if ( ( ! ( product_id > 0 ) && ! component.is_optional() ) || ( progression_style === 'strict' && component.$self.hasClass( 'blocked' ) ) || item_set == false || typeof( item_set ) === 'undefined' ) {
+				
+							// pending
+							
+						}
+						
+						else {
+							
+							active_components.push( component.get_title() );
+							
+						}
+						
+					}
+			
+				} );
+			
+				return active_components;
+				
+			},
+			
+			/**
+			 * Builds an object with all active Components Products
+			 */
+			
+			get_active_components_products: function() {
+				
+				var composite               		= this;
+				var composite_data 					= composite.$composite_data;
+				var active_components_products      = {};
+				var progression_style  				= composite_data.data( 'progression_style' );
+			
+				$.each( composite.composite_components, function( index, component ) {
+			
+					var products = component.get_selected_product_ids();
+					
+					active_components_products[component.get_title()] = [];
+					
+					for(i in products) {
+						
+						var product_id = parseInt(products[i]);
+						
+						if(product_id !== null && product_id > 0) {
+							
+							var item_set  = component.$component_data.eq(i).data( 'component_set' );
+					
+							if ( item_set == true && typeof( item_set ) !== 'undefined' ) {
+					
+								var product_title = $.trim(component.$self.find( '.component_options_select option:selected[value="' + product_id + '"]' ).data('title'));
+								
+								active_components_products[component.get_title()].push({id: product_id, title: product_title  });
+
+								
+							}
+							
+						}
+						
+					}
+			
+				} );
+			
+				return active_components_products;
+				
+			},
 
 			/**
 			 * Builds a string with all Components that require user input
@@ -3911,23 +4343,9 @@ jQuery( document ).ready( function($) {
 
 			get_pending_components_string: function() {
 
-				var composite                 = this;
-				var pending_components        = [];
-				var pending_components_string = '';
-				var progression_style         = composite.$composite_data.data( 'progression_style' );
-
-				$.each( composite.composite_components, function( index, component ) {
-
-					var selection = component.get_selected_product_id();
-					var item_set  = component.$component_data.data( 'component_set' );
-
-					if ( ( ! ( selection > 0 ) && ! component.is_optional() ) || ( progression_style === 'strict' && component.$self.hasClass( 'blocked' ) ) || item_set == false || typeof( item_set ) === 'undefined' ) {
-						pending_components.push( component.get_title() );
-					}
-
-				} );
-
+				var pending_components = this.get_pending_components();
 				var count = pending_components.length;
+				var pending_components_string = '';
 
 				if ( count > 0 ) {
 
@@ -3953,237 +4371,10 @@ jQuery( document ).ready( function($) {
 		};
 
 		wc_cp_composite_scripts[ container_id ].init();
+		
+		$(this).trigger('wc-composite-after-initialized');
+		
 	};
-
-	/**
-	 * Construct a variable product selected attributes short description
-	 */
-
-	function wc_cp_get_variable_product_attributes_description( variations ) {
-
-		var attribute_options        = variations.find( '.attribute-options' );
-		var attribute_options_length = attribute_options.length;
-		var meta                     = '';
-
-		if ( attribute_options_length == 0 ) {
-			return '';
-		}
-
-		attribute_options.each( function( index ) {
-
-			var selected = $(this).find( 'select' ).val();
-
-			if ( selected === '' ) {
-				meta = '';
-				return false;
-			}
-
-			meta = meta + $(this).data( 'attribute_label' ) + ': ' + $(this).find( 'select option:selected' ).text();
-
-			if ( index !== attribute_options_length - 1 ) {
-				meta = meta + ', ';
-			}
-
-		} );
-
-		return meta;
-	}
-
-	/**
-	 * Updates images in the Review/Summary template
-	 */
-
-	function wc_cp_update_summary_element_image( element, img_src ) {
-
-		var element_image = element.find( '.summary_element_image img' );
-
-		if ( element_image.length == 0 || element_image.hasClass( 'norefresh' ) ) {
-			return false;
-		}
-
-		var o_src = element_image.attr( 'data-o_src' );
-
-		if ( ! img_src ) {
-
-			if ( typeof( o_src ) !== 'undefined' ) {
-				element_image.attr( 'src', o_src );
-			}
-
-		} else {
-
-			if ( typeof( o_src ) === 'undefined' ) {
-				o_src = ( ! element_image.attr( 'src' ) ) ? '' : element_image.attr( 'src' );
-				element_image.attr( 'data-o_src', o_src );
-			}
-
-			element_image.attr( 'src', img_src );
-		}
-
-	}
-
-	/**
-	 * Toggle-box handling
-	 */
-
-	function wc_cp_toggle_element( container, content ) {
-
-		if ( container.hasClass( 'animating' ) ) {
-			return false;
-		}
-
-		if ( container.hasClass( 'closed' ) ) {
-			content.slideDown( { duration: 200, queue: false, always: function() {
-				container.removeClass( 'animating' );
-			} } );
-			container.removeClass( 'closed' ).addClass( 'open animating' );
-		} else {
-			content.slideUp( { duration: 200, queue: false } );
-			container.removeClass( 'open' ).addClass( 'closed' );
-		}
-
-		return true;
-	}
-
-	/**
-	 * Checks if the default attributes of a variable product are valid based on the active Scenarios
-	 */
-
-	function wc_cp_has_valid_default_attributes( variation_form ) {
-
-		var current_settings = {};
-
-		variation_form.find( '.variations select' ).each( function() {
-
-        	// Encode entities
-        	var value = $(this).val();
-
-			// Add to settings array
-			current_settings[ $(this).attr( 'name' ) ] = value;
-
-		} );
-
-		var all_variations      = variation_form.data( 'product_variations' );
-		var matching_variations = wc_cp_find_matching_variations( all_variations, current_settings );
-		var variation           = matching_variations.shift();
-
-		if ( variation ) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * Used by wc_cp_has_valid_default_attributes
-	 */
-
-    function wc_cp_find_matching_variations( product_variations, settings ) {
-
-        var matching = [];
-
-        for ( var i = 0; i < product_variations.length; i++ ) {
-
-        	var variation = product_variations[i];
-
-			if ( wc_cp_variations_match( variation.attributes, settings ) ) {
-                matching.push( variation );
-            }
-        }
-
-        return matching;
-    }
-
-	/**
-	 * Used by wc_cp_has_valid_default_attributes
-	 */
-
-   function wc_cp_variations_match( attrs1, attrs2 ) {
-
-        var match = true;
-
-        for ( var attr_name in attrs1 ) {
-
-            var val1 = attrs1[ attr_name ];
-            var val2 = attrs2[ attr_name ];
-
-            if ( val1 !== undefined && val2 !== undefined && val1.length != 0 && val2.length != 0 && val1 != val2 ) {
-                match = false;
-            }
-        }
-
-        return match;
-    }
-
-	/**
-	 * Various helper functions
-	 */
-
-	function wc_cp_woocommerce_number_format( price ) {
-
-		var remove     = wc_composite_params.currency_format_decimal_sep;
-		var position   = wc_composite_params.currency_position;
-		var symbol     = wc_composite_params.currency_symbol;
-		var trim_zeros = wc_composite_params.currency_format_trim_zeros;
-		var decimals   = wc_composite_params.currency_format_num_decimals;
-
-		if ( trim_zeros == 'yes' && decimals > 0 ) {
-			for (var i = 0; i < decimals; i++) { remove = remove + '0'; }
-			price = price.replace( remove, '' );
-		}
-
-		var price_format = '';
-
-		if ( position == 'left' ) {
-			price_format = '<span class="amount">' + symbol + price + '</span>';
-		} else if ( position == 'right' ) {
-			price_format = '<span class="amount">' + price + symbol +  '</span>';
-		} else if ( position == 'left_space' ) {
-			price_format = '<span class="amount">' + symbol + ' ' + price + '</span>';
-		} else if ( position == 'right_space' ) {
-			price_format = '<span class="amount">' + price + ' ' + symbol +  '</span>';
-		}
-
-		return price_format;
-	}
-
-	function wc_cp_number_format( number ) {
-
-		var decimals      = wc_composite_params.currency_format_num_decimals;
-		var decimal_sep   = wc_composite_params.currency_format_decimal_sep;
-		var thousands_sep = wc_composite_params.currency_format_thousand_sep;
-
-	    var n = number, c = isNaN( decimals = Math.abs( decimals ) ) ? 2 : decimals;
-	    var d = typeof( decimal_sep ) === 'undefined' ? ',' : decimal_sep;
-	    var t = typeof( thousands_sep ) === 'undefined' ? '.' : thousands_sep, s = n < 0 ? '-' : '';
-	    var i = parseInt( n = Math.abs( +n || 0 ).toFixed(c) ) + '', j = ( j = i.length ) > 3 ? j % 3 : 0;
-
-	    return s + ( j ? i.substr( 0, j ) + t : '' ) + i.substr(j).replace( /(\d{3})(?=\d)/g, '$1' + t ) + ( c ? d + Math.abs( n - i ).toFixed(c).slice(2) : '' );
-	}
-
-	function wc_cp_intersect_safe( a, b ) {
-
-		var ai     = 0, bi = 0;
-		var result = [];
-
-		a.sort();
-		b.sort();
-
-		while ( ai < a.length && bi < b.length ) {
-
-			if ( a[ai] < b[bi] ) {
-				ai++;
-			} else if ( a[ai] > b[bi] ) {
-				bi++;
-			/* they're equal */
-			} else {
-				result.push( a[ai] );
-				ai++;
-				bi++;
-			}
-		}
-
-		return result;
-	}
 
     $.fn.is_in_viewport = function( partial, hidden, direction ) {
 
@@ -4250,3 +4441,482 @@ jQuery( document ).ready( function($) {
 	} );
 
 } );
+
+/**
+ * Construct a variable product selected attributes short description
+ */
+
+function wc_cp_get_variable_product_attributes_description( variations ) {
+
+	var attribute_options        = variations.find( '.attribute-options' );
+	var attribute_options_length = attribute_options.length;
+	var meta                     = '';
+
+	if ( attribute_options_length == 0 ) {
+		return '';
+	}
+
+	attribute_options.each( function( index ) {
+
+		var selected = $(this).find( 'select' ).val();
+
+		if ( selected === '' ) {
+			meta = '';
+			return false;
+		}
+
+		meta = meta + $(this).data( 'attribute_label' ) + ': ' + $(this).find( 'select option:selected' ).text();
+
+		if ( index !== attribute_options_length - 1 ) {
+			meta = meta + ', ';
+		}
+
+	} );
+
+	return meta;
+}
+
+/**
+ * Updates images in the Review/Summary template
+ */
+
+function wc_cp_update_summary_element_image( element, img_src ) {
+
+	var element_image = element.find( '.summary_element_image img' );
+
+	if ( element_image.length == 0 || element_image.hasClass( 'norefresh' ) ) {
+		return false;
+	}
+
+	var o_src = element_image.attr( 'data-o_src' );
+
+	if ( ! img_src ) {
+
+		if ( typeof( o_src ) !== 'undefined' ) {
+			element_image.attr( 'src', o_src );
+		}
+
+	} else {
+
+		if ( typeof( o_src ) === 'undefined' ) {
+			o_src = ( ! element_image.attr( 'src' ) ) ? '' : element_image.attr( 'src' );
+			element_image.attr( 'data-o_src', o_src );
+		}
+
+		element_image.attr( 'src', img_src );
+	}
+
+}
+
+/**
+ * Toggle-box handling
+ */
+
+function wc_cp_toggle_element( container, content ) {
+
+	if ( container.hasClass( 'closed' ) ) {
+		content.slideDown( 300, function() {
+			container.removeClass( 'animating' );
+		} );
+		container.removeClass( 'closed' ).addClass( 'open animating' );
+	} else {
+		content.slideUp();
+		container.removeClass( 'open' ).addClass( 'closed' );
+	}
+
+	return true;
+}
+
+/**
+ * Checks if the default attributes of a variable product are valid based on the active Scenarios
+ */
+
+function wc_cp_has_valid_default_attributes( variation_form ) {
+
+	var current_settings = {};
+
+	variation_form.find( '.variations select' ).each( function() {
+
+    	// Encode entities
+    	var value = $(this).val();
+
+		// Add to settings array
+		current_settings[ $(this).attr( 'name' ) ] = value;
+
+	} );
+
+	var all_variations      = variation_form.data( 'product_variations' );
+	var matching_variations = wc_cp_find_matching_variations( all_variations, current_settings );
+	var variation           = matching_variations.shift();
+
+	if ( variation ) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * Used by wc_cp_has_valid_default_attributes
+ */
+
+function wc_cp_find_matching_variations( product_variations, settings ) {
+
+    var matching = [];
+
+    for ( var i = 0; i < product_variations.length; i++ ) {
+
+    	var variation = product_variations[i];
+
+		if ( wc_cp_variations_match( variation.attributes, settings ) ) {
+            matching.push( variation );
+        }
+    }
+
+    return matching;
+}
+
+/**
+ * Used by wc_cp_has_valid_default_attributes
+ */
+
+function wc_cp_variations_match( attrs1, attrs2 ) {
+
+    var match = true;
+
+    for ( var attr_name in attrs1 ) {
+
+        var val1 = attrs1[ attr_name ];
+        var val2 = attrs2[ attr_name ];
+
+        if ( val1 !== undefined && val2 !== undefined && val1.length != 0 && val2.length != 0 && val1 != val2 ) {
+            match = false;
+        }
+    }
+
+    return match;
+}
+
+/**
+ * Various helper functions
+ */
+
+function wc_cp_woocommerce_number_format( price ) {
+
+	var remove     = wc_composite_params.currency_format_decimal_sep;
+	var position   = wc_composite_params.currency_position;
+	var symbol     = wc_composite_params.currency_symbol;
+	var trim_zeros = wc_composite_params.currency_format_trim_zeros;
+	var decimals   = wc_composite_params.currency_format_num_decimals;
+
+	if ( trim_zeros == 'yes' && decimals > 0 ) {
+		for (var i = 0; i < decimals; i++) { remove = remove + '0'; }
+		price = price.replace( remove, '' );
+	}
+
+	var price_format = '';
+
+	if ( position == 'left' ) {
+		price_format = '<span class="amount">' + symbol + price + '</span>';
+	} else if ( position == 'right' ) {
+		price_format = '<span class="amount">' + price + symbol +  '</span>';
+	} else if ( position == 'left_space' ) {
+		price_format = '<span class="amount">' + symbol + ' ' + price + '</span>';
+	} else if ( position == 'right_space' ) {
+		price_format = '<span class="amount">' + price + ' ' + symbol +  '</span>';
+	}
+
+	return price_format;
+}
+
+function wc_cp_number_format( number ) {
+
+	var decimals      = wc_composite_params.currency_format_num_decimals;
+	var decimal_sep   = wc_composite_params.currency_format_decimal_sep;
+	var thousands_sep = wc_composite_params.currency_format_thousand_sep;
+
+    var n = number, c = isNaN( decimals = Math.abs( decimals ) ) ? 2 : decimals;
+    var d = typeof( decimal_sep ) === 'undefined' ? ',' : decimal_sep;
+    var t = typeof( thousands_sep ) === 'undefined' ? '.' : thousands_sep, s = n < 0 ? '-' : '';
+    var i = parseInt( n = Math.abs( +n || 0 ).toFixed(c) ) + '', j = ( j = i.length ) > 3 ? j % 3 : 0;
+
+    return s + ( j ? i.substr( 0, j ) + t : '' ) + i.substr(j).replace( /(\d{3})(?=\d)/g, '$1' + t ) + ( c ? d + Math.abs( n - i ).toFixed(c).slice(2) : '' );
+}
+
+function wc_cp_intersect_safe( a, b ) {
+
+	var ai     = 0, bi = 0;
+	var result = [];
+
+	a.sort();
+	b.sort();
+
+	while ( ai < a.length && bi < b.length ) {
+
+		if ( a[ai] < b[bi] ) {
+			ai++;
+		} else if ( a[ai] > b[bi] ) {
+			bi++;
+		/* they're equal */
+		} else {
+			result.push( a[ai] );
+			ai++;
+			bi++;
+		}
+	}
+
+	return result;
+}
+
+jQuery( document ).ready( function($) {
+	
+	var wc_cp_ext_blockUI_opts = {
+		message: null,
+		overlayCSS:  {
+			backgroundColor:	'#fff',
+			opacity:			0.6,
+			cursor:				'not-allowed'
+		},
+	};
+	
+	for(var container_id in wc_cp_composite_scripts) {
+		
+		var composite = wc_cp_composite_scripts[container_id];
+		
+		composite.$composite_data.data('sku', wc_composite_ext_product_data.sku);
+		composite.$composite_data.data('weight', wc_composite_ext_product_data.weight);
+		
+		composite.$composite_form
+	
+		.bind('wc-composite-hide-add-to-cart', function() {
+			
+			composite.$composite_data.find('.composite_sku').text('');
+			
+		})
+		
+		.bind('wc-composite-show-add-to-cart', function() {
+			
+			var sku = wc_cp_ext_get_sku(composite.$composite_form);
+			
+			composite.$composite_data.data('sku', sku);
+			
+		})
+		
+		.bind('wc-composite-calculate-weight', function() {
+			
+			var weight = wc_cp_ext_get_weight(composite.$composite_form);
+				
+			composite.$composite_data.data('weight', weight);
+			
+		})
+		
+		.trigger('wc-composite-calculate-weight');
+		
+		composite.$components
+		
+			/**
+			 * On changing a radio
+			 */
+			.on( 'change', '.component_options_radio', function( event ) {
+		
+				var item = $(this).closest( '.component' );
+		
+				if ( item.hasClass( 'disabled' ) || $(this).hasClass( 'disabled' ) )
+					return true;
+		
+				$(this).blur();
+				
+				var value = $(this).val();
+				
+				var select = $(this).closest( '.component_options' ).find( 'select.component_options_select' );
+		
+				if ( select.val() != value ) {
+					
+					select.val( value ).trigger('change').trigger('focusin');
+					
+					$( '.component' ).trigger('woocommerce_variation_select_focusin');
+					
+				}
+		
+			} )
+			
+			/**
+			 * On changing a checkbox
+			 */
+			.on( 'change', '.component_options_checkbox', function( event ) {
+		
+				var item = $(this).closest( '.component' );
+		
+				if ( item.hasClass( 'disabled' ) || $(this).hasClass( 'disabled' ) )
+					return true;
+		
+				$(this).blur();
+				
+				var values = [];
+				
+				$(this).parents('.component_options').find('input.component_options_checkbox:checked').each(function() {
+					
+					values.push($(this).val());
+					
+				});
+				
+				if(values.length === 0) {
+					
+					values.push("");
+					
+				}
+		
+				var select = $(this).closest( '.component_options' ).find( 'select.component_options_select' );
+		
+				if ( select.val() != values ) {
+					
+					select.val( values ).trigger('change').trigger('focusin');
+					
+					$( '.component' ).trigger('woocommerce_variation_select_focusin');
+					
+				}
+		
+			} )
+			
+			/**
+			 * On changing a select box
+			 */
+			.on( 'change', '.component_options_select', function( event ) {
+				
+				var values = $.isArray($(this).val()) ? $(this).val() : [$(this).val()];
+				
+				if(values) {
+					
+					var list = $(this).siblings('ul.component_options_radios, ul.component_options_checkboxes');
+					
+					var atLeastOne = false;
+					
+					for (var i = 0; i < values.length; i++) {
+						
+						value = values[i];
+					
+						if(value) {
+							
+							atLeastOne = true;
+						
+							var input = list.find('input[type="radio"][value="' + value + '"], input[type="checkbox"][value="' + value + '"]');
+							
+							if(!input.is(':checked')) {
+								
+								$(input).prop('checked', true);
+								
+							}	
+							
+						}	
+						
+					}
+					
+					if(!atLeastOne) {
+						
+						list.find( 'input[type="radio"]:not(.none), input[type="checkbox"]' ).prop('checked', false);
+						
+						$(this).find('option').eq(0).prop('selected', true);
+						
+					}	
+					
+				}
+				
+				composite.$composite_form.trigger('wc-composite-calculate-weight');
+				
+			} )
+			
+						
+			/**
+			 * Trigger hide radios if in scenario
+			 */
+			.trigger('woocommerce_variation_select_focusin')
+			
+			.find('.component_options_select option')
+		
+				/*
+				 * Hide radios / checkboxes if incompatible to scenario
+				*/
+				.bind('wc-composite-selection-incompatible', function() {
+					
+					var value = $(this).val();
+					
+					var select = $(this).parent('select');	
+					
+					var list = $(select).siblings('ul.component_options_radios, ul.component_options_checkboxes');
+					
+					var radio = list.find('input[type="radio"][value="' + value + '"], input[type="checkbox"][value="' + value + '"]');
+					
+					radio.prop('checked', false).parents('li').block(wc_cp_ext_blockUI_opts).find('.blockOverlay').removeClass('blockOverlay');
+					
+				})
+				
+				/*
+				 * Show radios / checkboxes if compatible to scenario
+				*/
+				.bind('wc-composite-selection-compatible', function() {
+					
+					var value = $(this).val();
+					
+					var select = $(this).parent('select');
+					
+					var list = $(select).siblings('ul.component_options_radios, ul.component_options_checkbox');
+					
+					var radio = list.find('input[type="radio"][value="' + value + '"], input[type="checkbox"][value="' + value + '"]');
+					
+					radio.parents('li').unblock();
+					
+				});
+		
+		
+	}
+	
+});
+
+function wc_cp_ext_get_sku(composite) {
+	
+	var composite_data =composite.find('.composite_data');
+	var container_id   = composite_data.data( 'container_id' );
+	var skus = [wc_composite_ext_product_data.sku];
+	
+	wc_cp_composite_scripts[ container_id ].$components.each(function() {
+		
+		jQuery(this).find('.component_options_select').each(function() {
+			
+			var sku_order = $(this).data('sku-order');
+		
+			if( sku_order ) {
+				
+				skus[sku_order] = $(this).find('option:selected').data('sku-build') ? $(this).find('option:selected').data('sku-build') : $(this).data('sku-default');
+				
+			}
+			
+		});
+		
+	});
+	
+	var	sku = skus.join('');
+	
+	return sku;
+	
+}
+
+function wc_cp_ext_get_weight(composite) {
+	
+	var composite_data = composite.find('.composite_data');
+	var container_id   = composite_data.data( 'container_id' );
+	var weight = parseFloat(typeof wc_composite_ext_product_data.weight !== 'undefined' ? wc_composite_ext_product_data.weight : 0);
+	
+	wc_cp_composite_scripts[ container_id ].$components.each(function() {
+		
+		jQuery(this).find('.component_options_select option:selected').each(function() {
+			
+			if($(this).data('product-weight') && typeof $(this).data('product-weight') !== 'undefined' && $(this).data('product-weight') > 0)
+				weight += parseFloat($(this).data('product-weight'));
+			
+		});
+		
+	});
+	
+	return weight.toFixed(1);
+	
+}

@@ -11,78 +11,50 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-global $woocommerce_composite_products;
+global $woocommerce_composite_products, $woocommerce_composite_products_extension;
 
 $is_static      = $product->is_component_static( $component_id );
 $is_optional    = $component_data[ 'optional' ] === 'yes';
 $quantity_min   = $component_data[ 'quantity_min' ];
 $quantity_max   = $component_data[ 'quantity_max' ];
-$selection_mode = $product->get_composite_selections_style();
+$recommended_id = isset($component_data[ 'recommended_id' ]) ? $component_data[ 'recommended_id' ] : null;
+$affect_sku		= isset($component_data[ 'affect_sku' ]) ? $component_data[ 'affect_sku' ] : false;
+$affect_sku_order = isset($component_data[ 'affect_sku_order' ]) ? $component_data[ 'affect_sku_order' ] : false;
+$sku_options = isset($component_data[ 'sku_options' ]) ? $component_data[ 'sku_options' ] : array();
+$selection_mode = isset($component_data[ 'option_style' ]) && $component_data[ 'option_style' ] ? $component_data[ 'option_style' ] : $product->get_composite_selections_style();
+$is_multiple = apply_filters('woocommerce_composite_product_extension_dropdown_is_multiple', $selection_mode == 'checkboxes', $component_data);
 
-?><div class="component_options" style="<?php echo $is_static ? 'display:none;' : ''; ?>"><?php
+$args = array_merge($args, compact('is_static', 'is_optional', 'quantity_min', 'quantity_max', 'selection_mode', 'recommended_id', 'affect_sku', 'affect_sku_order', 'sku_options', 'is_multiple'));
 
-	?><div class="component_options_inner cp_clearfix">
+?>
+
+<div class="component_options" style="<?php echo $is_static ? 'display:none;' : ''; ?>">
+	
+	<div class="component_options_inner cp_clearfix">
 
 		<p class="component_section_title">
-			<label class="select_label"><?php echo __( 'Select an option&hellip;', 'woocommerce-composite-products' ); ?>
-			</label>
-		</p><?php
+			
+			<label class="select_label"><?php echo __( 'Select an option&hellip;', 'woocommerce-composite-products' ); ?></label>
+			
+		</p>
+		
+		<?php 
 
-		// Thumbnails template
-		if ( $selection_mode === 'thumbnails' ) {
-			wc_get_template( 'single-product/component-option-thumbnails.php', array(
-				'product'           => $product,
-				'component_id'      => $component_id,
-				'quantity_min'      => $quantity_min,
-				'quantity_max'      => $quantity_max,
-				'component_options' => $component_options,
-				'selected_option'   => $selected_option,
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-		}
-
-		?><select id="component_options_<?php echo $component_id; ?>" class="component_options_select" name="wccp_component_selection[<?php echo $component_id; ?>]" style="<?php echo $selection_mode === 'thumbnails' ? 'display:none;' : ''; ?>"><?php
-
-			if ( ! $is_static ) {
-				?><option class="empty none" data-title="<?php echo __( 'None', 'woocommerce-composite-products' ); ?>" value=""><?php echo $is_optional ? _x( 'Select an option&hellip;', 'select option dropdown text - optional component', 'woocommerce-composite-products' ) : _x( 'Select an option&hellip;', 'select option dropdown text - mandatory component', 'woocommerce-composite-products' ); ?></option><?php
+			// Thumbnails template
+			if ( $selection_mode == 'thumbnails' ) {
+				wc_get_template( 'single-product/component-option-thumbnails.php', $args, '', $woocommerce_composite_products->plugin_path() . '/templates/' );
 			}
-
-			// In thumbnails mode, always add the current selection to the (hidden) dropdown
-			if ( $selection_mode === 'thumbnails' && $selected_option && ! in_array( $selected_option, $component_options ) ) {
-				$component_options[] = $selected_option;
+			
+			elseif( $selection_mode != 'dropdowns' ) {
+				wc_get_template( 'single-product/component-option-' . $selection_mode . '.php', $args, '', $woocommerce_composite_products_extension->plugin_path() . '/templates/' );
 			}
-
-			foreach ( $component_options as $product_id ) {
-
-				$composited_product = $product->get_composited_product( $component_id, $product_id );
-
-				if ( ! $composited_product )
-					continue;
-
-				if ( has_post_thumbnail( $product_id ) ) {
-					$attachment_id = get_post_thumbnail_id( $product_id );
-					$attachment    = wp_get_attachment_image_src( $attachment_id, apply_filters( 'woocommerce_composite_component_option_image_size', 'shop_catalog' ) );
-					$image_src     = $attachment ? current( $attachment ) : false;
-				} else {
-					$image_src = '';
-				}
-
-				?><option data-title="<?php echo esc_attr( get_the_title( $product_id ) ); ?>" data-image_src="<?php echo esc_attr( $image_src ); ?>" value="<?php echo $product_id; ?>" <?php echo selected( $selected_option, $product_id, false ); ?>><?php
-
-					if ( $quantity_min == $quantity_max && $quantity_min > 1 ) {
-						$quantity = ' &times; ' . $quantity_min;
-					} else {
-						$quantity = '';
-					}
-
-					echo $composited_product->get_product()->get_title() . $quantity;
-
-					echo $composited_product->get_price_string();
-
-				?></option><?php
-			}
-		?></select>
+			
+			wc_get_template( 'single-product/component-option-dropdowns.php', $args, '', $woocommerce_composite_products_extension->plugin_path() . '/templates/' ); 
+			
+		?>
 
 		<div class="cp_clearfix"></div>
-	</div><?php
-
-?></div><?php
+		
+	</div>
+	
+</div>

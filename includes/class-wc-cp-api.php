@@ -43,6 +43,204 @@ class WC_CP_API {
 		// Ajax component options front-end handler
 		add_action( 'wp_ajax_woocommerce_show_component_options', array( $this, 'show_component_options_ajax' ) );
 		add_action( 'wp_ajax_nopriv_woocommerce_show_component_options', array( $this, 'show_component_options_ajax' ) );
+		
+		add_filter( 'woocommerce_available_variation', array($this, 'add_data_to_available_variation'), 10, 3 ); // For showing prices before and after Tax
+		add_filter( 'woocommerce_composite_price_data', array($this, 'add_data_to_price_data'), 10, 2); // For showing prices before and after Tax
+		
+	}
+	
+	/**
+	 * Show composited product data in the front-end.
+	 * Used on first product page load to display content for component defaults.
+	 *
+	 * @param  mixed                   $product_id
+	 * @param  mixed                   $component_id
+	 * @param  WC_Product_Composite    $container_id
+	 * @return string
+	 */
+	public function show_composited_product( $product_ids, $component_id, $composite ) {
+	
+		global $woocommerce_composite_products;
+		
+		if ( $product_ids === '0' || $product_ids === '' || empty( $product_ids ) || !$product_ids ) {
+
+			echo '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>';
+			
+			return;
+
+		}
+		
+		$component_data      = $composite->get_component_data( $component_id );
+		
+		$per_product_pricing = $composite->is_priced_per_product();
+	
+		$quantity_min        = $component_data[ 'quantity_min' ];
+		$quantity_max        = $component_data[ 'quantity_max' ];
+		
+		$data = $products = $price_data[ 'price' ] = $price_data[ 'regular_price' ] = $price_data[ 'custom_data' ] = array();
+		
+		$output = '';
+		
+		$show_selection_ui = apply_filters('woocommerce_composite_extension_show_selection_ui', true, $component_data, $composite);
+		
+		$data = $products = $price_data[ 'price' ] = $price_data[ 'regular_price' ] = $price_data[ 'custom_data' ] = array();
+		
+		$output = '';
+		
+		ob_start();
+		
+		foreach($product_ids as $product_id) {
+			
+			if ( $product_id === '0' || $product_id === '' ) {
+
+				$output .= '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>';
+				
+				continue;
+	
+			}
+			
+			$product = $composite->get_composited_product( $component_id, $product_id )->get_product();		
+			
+			$products[] = $product;
+				
+			if ( ! $product || ! $product->is_purchasable() ) {
+				
+				$output .= sprintf( '<div class="component_data" data-component_set="false" data-price="0" data-regular_price="0" data-product_type="invalid-product">%s</div>', __( 'Sorry, this item cannot be purchased at the moment.', 'woocommerce-composite-products' ) );
+				
+				continue;
+				
+			}
+	
+			if ( $product->sold_individually == 'yes' ) {
+	 			$quantity_max = 1;
+	 			$quantity_min = min( $quantity_min, 1 );
+	 		}
+	
+	 		$data[$product_id][ 'purchasable' ] = 'yes';
+	 		$data[$product_id][ 'custom_data' ] = apply_filters( 'woocommerce_composited_product_custom_data', array(), $product, $component_id, $component_data, $composite );
+	
+			$discount = isset( $component_data[ 'discount' ] ) ? $component_data[ 'discount' ] : 0;
+	
+			$hide_product_title       = isset( $component_data[ 'hide_product_title' ] ) ? $component_data[ 'hide_product_title' ] : 'no';
+			$hide_product_description = isset( $component_data[ 'hide_product_description' ] ) ? $component_data[ 'hide_product_description' ] : 'no';
+			$hide_product_thumbnail   = isset( $component_data[ 'hide_product_thumbnail' ] ) ? $component_data[ 'hide_product_thumbnail' ] : 'no';
+	
+			$args = array(
+				'per_product_pricing' => $per_product_pricing,
+				'discount'            => $discount,
+				'quantity_min'        => $quantity_min,
+				'quantity_max'        => $quantity_max,
+				'composite_id'        => $composite->id,
+				'component_id'        => $component_id
+			);
+	
+			$this->add_composited_product_filters( $args, $product );
+	
+			if ( $product->is_type( 'simple' ) ) {
+	
+				$data[$product_id][ 'product_type' ] = 'simple';
+	
+				$product_regular_price = $product->get_regular_price();
+				$product_price         = $product->get_price();
+	
+				$price_data[ 'price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'price' ] = $this->get_composited_product_price( $product, $product_price );
+				$price_data[ 'regular_price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $product, $product_regular_price );
+				
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ] = array();
+				
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'price' ] = $this->get_composited_item_prices( $product, $product_price );
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'regular_price' ] = $this->get_composited_item_prices( $product, $product_regular_price );
+	
+				wc_get_template( 'composited-product/simple-product.php', array(
+					'product'                  => $product,
+					'data'                     => $data[$product_id],
+					'composite_id'             => $composite->id,
+					'component_id'             => $component_id,
+					'quantity_min'             => $quantity_min,
+					'quantity_max'             => $quantity_max,
+					'per_product_pricing'      => $per_product_pricing,
+					'hide_product_title'       => $hide_product_title,
+					'hide_product_description' => $hide_product_description,
+					'hide_product_thumbnail'   => $hide_product_thumbnail,
+					'show_selection_ui'        => $show_selection_ui && $composite->is_component_static( $component_id ) === false,
+					'composite_product'        => $composite
+				), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+	
+			} elseif ( $product->is_type( 'variable' ) ) {
+	
+				$data[$product_id][ 'product_variations' ] = apply_filters('woocommerce_composite_products_extension_available_product_variations', $product->get_available_variations(), $product, $composite);
+	
+				$data[$product_id][ 'product_type' ] = 'variable';
+	
+				foreach ( $data[ $product_id ][ 'product_variations' ] as &$variation_data ) {
+	
+					$variation_data[ 'min_qty' ] = $quantity_min;
+					$variation_data[ 'max_qty' ] = $quantity_max;
+				}
+				
+				if(isset($_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $product_id ])) {
+					
+					$variation_id = $_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $product_id ];
+					
+					$variation = new WC_Product_Variation($variation_id);
+					
+					$variation_regular_price = $variation->get_regular_price();
+					$variation_price         = $variation->get_price();
+		
+					$price_data[ 'price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'price' ] = $this->get_composited_product_price( $variation, $variation_price );
+					$price_data[ 'regular_price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $variation, $variation_regular_price );
+					
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ] = array();
+					
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'price' ] = $this->get_composited_item_prices( $variation, $variation_price );
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'regular_price' ] = $this->get_composited_item_prices( $variation, $variation_regular_price );
+					
+				}
+	
+				wc_get_template( 'composited-product/variable-product.php', array(
+					'product'                  => $product,
+					'data'                     => $data[$product_id],
+					'composite_id'             => $composite->id,
+					'component_id'             => $component_id,
+					'quantity_min'             => $quantity_min,
+					'quantity_max'             => $quantity_max,
+					'hide_product_title'       => $hide_product_title,
+					'hide_product_description' => $hide_product_description,
+					'hide_product_thumbnail'   => $hide_product_thumbnail,
+					'show_selection_ui'        => $show_selection_ui && $composite->is_component_static( $component_id ) === false,
+					'composite_product'        => $composite
+				), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+	
+			} else {
+	
+				// Support for custom product types
+				do_action( 'woocommerce_composite_show_custom_product_type', $product, $component_id, $composite );
+			}	
+			
+			$show_selection_ui = false;
+			
+		}
+		
+		if(count($products) > 1) {
+			
+			wc_get_template( 'composited-product/total-price.php', array(
+				'total_price' => array_sum($price_data[ 'price' ]),
+				'total_regular_price' => array_sum($price_data[ 'regular_price' ]),
+				'product' => $product,
+			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+			
+		} elseif(!$products) {
+			
+			echo '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>';
+			
+		}
+
+		$this->remove_composited_product_filters();
+
+		$output .= ob_get_clean();
+		
+		return $output;
+		
 	}
 
 	/**
@@ -66,7 +264,7 @@ class WC_CP_API {
 	 * @return void
 	 */
 	public function show_component_options_ajax() {
-
+		
 		global $woocommerce_composite_products;
 
 		$data = array();
@@ -167,131 +365,6 @@ class WC_CP_API {
 	}
 
 	/**
-	 * Show composited product data in the front-end.
-	 * Used on first product page load to display content for component defaults.
-	 *
-	 * @param  mixed                   $product_id
-	 * @param  mixed                   $component_id
-	 * @param  WC_Product_Composite    $container_id
-	 * @return string
-	 */
-	public function show_composited_product( $product_id, $component_id, $composite ) {
-
-		global $woocommerce_composite_products;
-
-		$data = array();
-
-		if ( $product_id === '0' || $product_id === '' ) {
-
-			return '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>';
-
-		} else {
-
-			$product = $composite->get_composited_product( $component_id, $product_id )->get_product();
-
-			if ( ! $product || ! $product->is_purchasable() )
-				return sprintf( '<div class="component_data" data-component_set="false" data-price="0" data-regular_price="0" data-product_type="invalid-product">%s</div>', __( 'Sorry, this item cannot be purchased at the moment.', 'woocommerce-composite-products' ) );
-		}
-
-		$component_data      = $composite->get_component_data( $component_id );
-
-		$per_product_pricing = $composite->is_priced_per_product();
-
-		$quantity_min        = $component_data[ 'quantity_min' ];
-		$quantity_max        = $component_data[ 'quantity_max' ];
-
-		if ( $product->sold_individually == 'yes' ) {
- 			$quantity_max = 1;
- 			$quantity_min = min( $quantity_min, 1 );
- 		}
-
- 		$data[ 'purchasable' ] = 'yes';
- 		$data[ 'custom_data' ] = apply_filters( 'woocommerce_composited_product_custom_data', array(), $product, $component_id, $component_data, $composite );
-
-		$discount = isset( $component_data[ 'discount' ] ) ? $component_data[ 'discount' ] : 0;
-
-		$hide_product_title       = isset( $component_data[ 'hide_product_title' ] ) ? $component_data[ 'hide_product_title' ] : 'no';
-		$hide_product_description = isset( $component_data[ 'hide_product_description' ] ) ? $component_data[ 'hide_product_description' ] : 'no';
-		$hide_product_thumbnail   = isset( $component_data[ 'hide_product_thumbnail' ] ) ? $component_data[ 'hide_product_thumbnail' ] : 'no';
-
-		ob_start();
-
-		$args = array(
-			'per_product_pricing' => $per_product_pricing,
-			'discount'            => $discount,
-			'quantity_min'        => $quantity_min,
-			'quantity_max'        => $quantity_max,
-			'composite_id'        => $composite->id,
-			'component_id'        => $component_id
-		);
-
-		$this->add_composited_product_filters( $args, $product );
-
-		if ( $product->is_type( 'simple' ) ) {
-
-			$data[ 'product_type' ] = 'simple';
-
-			$product_regular_price = $product->get_regular_price();
-			$product_price         = $product->get_price();
-
-			$data[ 'price_data' ][ 'price' ]         = $this->get_composited_product_price( $product, $product_price );
-			$data[ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $product, $product_regular_price );
-
-			wc_get_template( 'composited-product/simple-product.php', array(
-				'product'                  => $product,
-				'data'                     => $data,
-				'composite_id'             => $composite->id,
-				'component_id'             => $component_id,
-				'quantity_min'             => $quantity_min,
-				'quantity_max'             => $quantity_max,
-				'per_product_pricing'      => $per_product_pricing,
-				'hide_product_title'       => $hide_product_title,
-				'hide_product_description' => $hide_product_description,
-				'hide_product_thumbnail'   => $hide_product_thumbnail,
-				'show_selection_ui'        => $composite->is_component_static( $component_id ) === false,
-				'composite_product'        => $composite
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-
-		} elseif ( $product->is_type( 'variable' ) ) {
-
-			$data[ 'product_variations' ] = $product->get_available_variations();
-
-			$data[ 'product_type' ] = 'variable';
-
-			foreach ( $data[ 'product_variations' ] as &$variation_data ) {
-
-				$variation_data[ 'min_qty' ] = $quantity_min;
-				$variation_data[ 'max_qty' ] = $quantity_max;
-			}
-
-			wc_get_template( 'composited-product/variable-product.php', array(
-				'product'                  => $product,
-				'data'                     => $data,
-				'composite_id'             => $composite->id,
-				'component_id'             => $component_id,
-				'quantity_min'             => $quantity_min,
-				'quantity_max'             => $quantity_max,
-				'hide_product_title'       => $hide_product_title,
-				'hide_product_description' => $hide_product_description,
-				'hide_product_thumbnail'   => $hide_product_thumbnail,
-				'show_selection_ui'        => $composite->is_component_static( $component_id ) === false,
-				'composite_product'        => $composite
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-
-		} else {
-
-			// Support for custom product types
-			do_action( 'woocommerce_composite_show_custom_product_type', $product, $component_id, $composite );
-		}
-
-		$this->remove_composited_product_filters();
-
-		$output = ob_get_clean();
-
-		return $output;
-	}
-
-	/**
 	 * Ajax listener that fetches product data when a new selection is made.
 	 *
 	 * @param  mixed    $product_id
@@ -300,7 +373,7 @@ class WC_CP_API {
 	 * @return string
 	 */
 	public function show_composited_product_ajax( $product_id = '', $component_id = '', $composite_id = '' ) {
-
+	
 		global $woocommerce_composite_products;
 
 		$data = array();
@@ -313,15 +386,20 @@ class WC_CP_API {
 
 			echo json_encode( array(
 				'product_data' => $data,
-				'markup'       => __( 'Sorry, this item cannot be purchased at the moment. Please refresh the page and try again.', 'woocommerce-composite-products' )
+				'markup'       => __( 'Sorry, this item cannot be purchased at the moment. Please refresh the page and try again.', 'woocommerce-composite-products' ),
 			) );
 
 			die();
 		}
 
-		if ( isset( $_POST[ 'product_id' ] ) && intval( $_POST[ 'product_id' ] ) > 0 && isset( $_POST[ 'component_id' ] ) && ! empty( $_POST[ 'component_id' ] ) && isset( $_POST[ 'composite_id' ] ) && ! empty( $_POST[ 'composite_id' ] ) ) {
-
-			$product_id   = intval( $_POST[ 'product_id' ] );
+		if ( isset( $_POST[ 'product_id' ] ) && count( $_POST[ 'product_id' ] ) > 0 && isset( $_POST[ 'component_id' ] ) && ! empty( $_POST[ 'component_id' ] ) && isset( $_POST[ 'composite_id' ] ) && ! empty( $_POST[ 'composite_id' ] ) ) {
+			
+			$product_ids = array();
+		
+			foreach(is_array($_POST[ 'product_id' ]) ? $_POST[ 'product_id' ] : array($_POST[ 'product_id' ]) as $product_id) {
+				$product_ids[]   = intval( $product_id );
+			}
+			
 			$component_id = intval( $_POST[ 'component_id' ] );
 			$composite_id = intval( $_POST[ 'composite_id' ] );
 
@@ -331,126 +409,176 @@ class WC_CP_API {
 
 			echo json_encode( array(
 				'product_data' => $data,
-				'markup'       => sprintf( '<div class="component_data" data-component_set="false" data-price="0" data-regular_price="0" data-product_type="invalid-data">%s</div>', __( 'Sorry, this item cannot be purchased at the moment.', 'woocommerce-composite-products' ) )
+				'markup'       => sprintf( '<div class="component_data" data-component_set="false" data-price="0" data-regular_price="0" data-product_type="invalid-data">%s</div>', __( 'Sorry, this item cannot be purchased at the moment.', 'woocommerce-composite-products' ) ),
 			) );
 
 			die();
 		}
-
-		$product = WC_CP_Core_Compatibility::wc_get_product( $product_id );
-
-		if ( ! $product || ! $product->is_purchasable() ) {
-
-			$data[ 'purchasable' ] = 'no';
-
-			echo json_encode( array(
-				'product_data' => $data,
-				'markup'       => sprintf( '<div class="component_data" data-component_set="false" data-price="0" data-regular_price="0" data-product_type="invalid-product">%s</div>', __( 'Sorry, this item cannot be purchased at the moment.', 'woocommerce-composite-products' ) )
-			) );
-
-			die();
-
-		} else {
-
-			$data[ 'purchasable' ] = 'yes';
-		}
-
+		
 		$composite           = WC_CP_Core_Compatibility::wc_get_product( $composite_id );
 		$component_data      = $composite->get_component_data( $component_id );
-
+		
 		$per_product_pricing = $composite->is_priced_per_product();
-
+	
 		$quantity_min        = $component_data[ 'quantity_min' ];
 		$quantity_max        = $component_data[ 'quantity_max' ];
-
-		if ( $product->sold_individually == 'yes' ) {
- 			$quantity_max = 1;
- 			$quantity_min = min( $quantity_min, 1 );
- 		}
-
- 		$data[ 'custom_data' ] = apply_filters( 'woocommerce_composited_product_custom_data', array(), $product, $component_id, $component_data, $composite );
-
-		$discount = isset( $component_data[ 'discount' ] ) ? $component_data[ 'discount' ] : 0;
-
-		$hide_product_title       = isset( $component_data[ 'hide_product_title' ] ) ? $component_data[ 'hide_product_title' ] : 'no';
-		$hide_product_description = isset( $component_data[ 'hide_product_description' ] ) ? $component_data[ 'hide_product_description' ] : 'no';
-		$hide_product_thumbnail   = isset( $component_data[ 'hide_product_thumbnail' ] ) ? $component_data[ 'hide_product_thumbnail' ] : 'no';
-
+		
+		$data = $products = $price_data[ 'price' ] = $price_data[ 'regular_price' ] = $price_data[ 'custom_data' ] = array();
+		
+		$output = '';
+		
+		$show_selection_ui = apply_filters('woocommerce_composite_extension_show_selection_ui', true, $component_data, $composite);
+		
 		ob_start();
+		
+		foreach($product_ids as $product_id) {
+			
+			if(!$product_id) continue;
+			
+			$product = WC_CP_Core_Compatibility::wc_get_product( $product_id );
+			
+			$products[] = $product;
 
-		$args = array(
-			'per_product_pricing' => $per_product_pricing,
-			'discount'            => $discount,
-			'quantity_min'        => $quantity_min,
-			'quantity_max'        => $quantity_max,
-			'composite_id'        => $composite_id,
-			'component_id'        => $component_id
-		);
-
-		$this->add_composited_product_filters( $args, $product );
-
-		if ( $product->is_type( 'simple' ) ) {
-
-			$data[ 'product_type' ] = 'simple';
-
-			$product_regular_price = $product->get_regular_price();
-			$product_price         = $product->get_price();
-
-			$data[ 'price_data' ][ 'price' ]         = $this->get_composited_product_price( $product, $product_price );
-			$data[ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $product, $product_regular_price );
-
-			wc_get_template( 'composited-product/simple-product.php', array(
-				'product'                  => $product,
-				'data'                     => $data,
-				'composite_id'             => $composite_id,
-				'component_id'             => $component_id,
-				'quantity_min'             => $quantity_min,
-				'quantity_max'             => $quantity_max,
-				'per_product_pricing'      => $per_product_pricing,
-				'hide_product_title'       => $hide_product_title,
-				'hide_product_description' => $hide_product_description,
-				'hide_product_thumbnail'   => $hide_product_thumbnail,
-				'show_selection_ui'        => true,
-				'composite_product'        => $composite
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-
-		} elseif ( $product->is_type( 'variable' ) ) {
-
-			$data[ 'product_variations' ] = $product->get_available_variations();
-
-			$data[ 'product_type' ] = 'variable';
-
-			foreach ( $data[ 'product_variations' ] as &$variation_data ) {
-
-				$variation_data[ 'min_qty' ] = $quantity_min;
-				$variation_data[ 'max_qty' ] = $quantity_max;
-
+			if ( ! $product || ! $product->is_purchasable() ) {
+	
+				$data[$product_id][ 'purchasable' ] = 'no';
+	
+				continue;
+	
+			} else {
+	
+				$data[$product_id][ 'purchasable' ] = 'yes';
 			}
-
-			wc_get_template( 'composited-product/variable-product.php', array(
-				'product'                  => $product,
-				'data'                     => $data,
-				'composite_id'             => $composite_id,
-				'component_id'             => $component_id,
-				'quantity_min'             => $quantity_min,
-				'quantity_max'             => $quantity_max,
-				'hide_product_title'       => $hide_product_title,
-				'hide_product_description' => $hide_product_description,
-				'hide_product_thumbnail'   => $hide_product_thumbnail,
-				'show_selection_ui'        => true,
-				'composite_product'        => $composite
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-
-		} else {
-
-			// Support for custom product types
-			do_action( 'woocommerce_composite_show_custom_product_type', $product, $component_id, $composite );
+	
+			if ( $product->sold_individually == 'yes' ) {
+	 			$quantity_max = 1;
+	 			$quantity_min = min( $quantity_min, 1 );
+	 		}
+	
+	 		$data[$product_id][ 'custom_data' ] = apply_filters( 'woocommerce_composited_product_custom_data', array(), $product, $component_id, $component_data, $composite );
+	
+			$discount = isset( $component_data[ 'discount' ] ) ? $component_data[ 'discount' ] : 0;
+	
+			$hide_product_title       = isset( $component_data[ 'hide_product_title' ] ) ? $component_data[ 'hide_product_title' ] : 'no';
+			$hide_product_description = isset( $component_data[ 'hide_product_description' ] ) ? $component_data[ 'hide_product_description' ] : 'no';
+			$hide_product_thumbnail   = isset( $component_data[ 'hide_product_thumbnail' ] ) ? $component_data[ 'hide_product_thumbnail' ] : 'no';
+	
+			$args = array(
+				'per_product_pricing' => $per_product_pricing,
+				'discount'            => $discount,
+				'quantity_min'        => $quantity_min,
+				'quantity_max'        => $quantity_max,
+				'composite_id'        => $composite_id,
+				'component_id'        => $component_id
+			);
+	
+			$this->add_composited_product_filters( $args, $product );
+	
+			if ( $product->is_type( 'simple' ) ) {
+	
+				$data[$product_id][ 'product_type' ] = 'simple';
+	
+				$product_regular_price = $product->get_regular_price();
+				$product_price         = $product->get_price();
+	
+				$price_data[ 'price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'price' ] = $this->get_composited_product_price( $product, $product_price );
+				$price_data[ 'regular_price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $product, $product_regular_price );
+				
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ] = array();
+				
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'price' ] = $this->get_composited_item_prices( $product, $product_price );
+				$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'regular_price' ] = $this->get_composited_item_prices( $product, $product_regular_price );
+	
+				wc_get_template( 'composited-product/simple-product.php', array(
+					'product'                  => $product,
+					'data'                     => $data[$product_id],
+					'composite_id'             => $composite_id,
+					'component_id'             => $component_id,
+					'quantity_min'             => $quantity_min,
+					'quantity_max'             => $quantity_max,
+					'per_product_pricing'      => $per_product_pricing,
+					'hide_product_title'       => $hide_product_title,
+					'hide_product_description' => $hide_product_description,
+					'hide_product_thumbnail'   => $hide_product_thumbnail,
+					'show_selection_ui'        => $show_selection_ui,
+					'composite_product'        => $composite
+				), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+	
+			} elseif ( $product->is_type( 'variable' ) ) {
+	
+				$data[$product_id][ 'product_variations' ] = apply_filters('woocommerce_composite_products_extension_available_product_variations', $product->get_available_variations(), $product, $composite);
+				$data[$product_id][ 'product_type' ] = 'variable';
+	
+				foreach ( $data[$product_id][ 'product_variations' ] as &$variation_data ) {
+	
+					$variation_data[ 'min_qty' ] = $quantity_min;
+					$variation_data[ 'max_qty' ] = $quantity_max;
+	
+				}
+				
+				if(isset($_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $product_id ])) {
+					
+					$variation_id = $_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $product_id ];
+					
+					$variation = new WC_Product_Variation($variation_id);
+					
+					$variation_regular_price = $variation->get_regular_price();
+					$variation_price         = $variation->get_price();
+		
+					$price_data[ 'price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'price' ] = $this->get_composited_product_price( $variation, $variation_price );
+					$price_data[ 'regular_price' ][ $product_id ] = $data[ $product_id ][ 'price_data' ][ 'regular_price' ] = $this->get_composited_product_price( $variation, $variation_regular_price );
+					
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ] = array();
+					
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'price' ] = $this->get_composited_item_prices( $variation, $variation_price );
+					$data[$product_id][ 'custom_data' ][ 'all_prices' ][ 'regular_price' ] = $this->get_composited_item_prices( $variation, $variation_regular_price );
+					
+				}
+	
+				wc_get_template( 'composited-product/variable-product.php', array(
+					'product'                  => $product,
+					'data'                     => $data[$product_id],
+					'composite_id'             => $composite_id,
+					'component_id'             => $component_id,
+					'quantity_min'             => $quantity_min,
+					'quantity_max'             => $quantity_max,
+					'hide_product_title'       => $hide_product_title,
+					'hide_product_description' => $hide_product_description,
+					'hide_product_thumbnail'   => $hide_product_thumbnail,
+					'show_selection_ui'        => $show_selection_ui,
+					'composite_product'        => $composite
+				), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+	
+			} else {
+	
+				// Support for custom product types
+				do_action( 'woocommerce_composite_show_custom_product_type', $product, $component_id, $composite );
+			}
+			
+			$show_selection_ui = false;
+			
 		}
-
+		
 		$this->remove_composited_product_filters();
-
-		$output = ob_get_clean();
-
+		
+		if(count($products) > 1) {
+			
+			wc_get_template( 'composited-product/total-price.php', array(
+				'total_price' => array_sum($price_data[ 'price' ]),
+				'total_regular_price' => array_sum($price_data[ 'regular_price' ]),
+				'product' => $product,
+			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+			
+		} elseif(!$products) {
+			
+			echo '<div class="component_data" data-component_set="true" data-price="0" data-regular_price="0" data-product_type="none" style="display:none;"></div>';
+			
+		}
+		
+		$output .= ob_get_clean();
+		
+		$data[ 'purchasable' ] = 'yes';
+		
 		echo json_encode( array(
 			'markup'       => $output,
 			'product_data' => $data
@@ -1475,4 +1603,32 @@ class WC_CP_API {
 
 		return 'single';
 	}
+	
+	public function add_data_to_price_data($price_data, $product) {
+			
+		$base_price_data = $this->get_composited_item_prices($product, $product->get_base_price());
+		$base_regular_price_data = $this->get_composited_item_prices($product, $product->get_base_regular_price());
+		
+		$price_data[ 'base_price_incl_tax' ] = $base_price_data['incl'] ? $base_price_data['incl'] : 0;
+		$price_data[ 'base_price_excl_tax' ] = $base_price_data['excl'] ? $base_price_data['excl'] : 0;
+		
+		$price_data[ 'base_regular_price_incl_tax' ] = $base_regular_price_data['incl'] ? $base_regular_price_data['incl'] : 0;
+		$price_data[ 'base_regular_price_excl_tax' ] = $base_regular_price_data['excl'] ? $base_regular_price_data['excl'] : 0;
+		
+		return $price_data;
+		
+	}
+	
+	public function add_data_to_available_variation($available_variation, $product, $variation) {
+		
+		$available_variation['all_prices'] = array();
+		$available_variation['all_prices']['price'] = $this->get_composited_item_prices( $variation, $variation->get_price() );
+		$available_variation['all_prices']['regular_price'] = $this->get_composited_item_prices( $variation, $variation->get_regular_price() );
+		
+		$available_variation['product_id'] = $product->id;
+		
+		return $available_variation;
+		
+	}
+		
 }

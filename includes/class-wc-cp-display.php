@@ -130,6 +130,12 @@ class WC_CP_Display {
 
 		// Indent composited items in emails
 		add_action( 'woocommerce_email_styles', array( $this, 'wc_cp_email_styles' ) );
+		
+		add_action( 'woocommerce_after_add_to_cart_button', array($this, 'after_add_to_cart_button'), 10); // Able
+		
+		add_filter( 'woocommerce_composite_front_end_params', array($this, 'wc_cp_script_debug') ); // Able
+		add_filter( 'woocommerce_component_options_per_page', array($this, 'wc_cp_unlimited_per_page_if_radio'), 10, 3 ); // For Multi-Product
+		
 	}
 
 	/* ---------------------------------------------------------------------- */
@@ -169,7 +175,7 @@ class WC_CP_Display {
 	 * @return void
 	 */
 	public function wc_cp_add_current_selection_details( $component_id, $product ) {
-
+	
 		global $woocommerce_composite_products;
 
 		// Default Component Option
@@ -177,9 +183,9 @@ class WC_CP_Display {
 
 		?><div class="component_content" data-product_id="<?php echo $component_id; ?>">
 			<div class="component_summary cp_clearfix">
-				<div class="product content"><?php
-					echo $woocommerce_composite_products->api->show_composited_product( $selected_option, $component_id, $product );
-				?></div>
+				<div class="product content">
+					<?php echo $woocommerce_composite_products->api->show_composited_product( is_array($selected_option) ? $selected_option : array($selected_option), $component_id, $product ); ?>
+				</div>
 			</div>
 		</div><?php
 	}
@@ -210,8 +216,12 @@ class WC_CP_Display {
 	 * @return void
 	 */
 	public function wc_cp_add_component_options( $component_id, $product ) {
-
+	
 		global $woocommerce_composite_products;
+		
+		// Enqueue scripts
+		wp_enqueue_script( 'wc-add-to-cart-composite' );
+		wp_enqueue_script( 'wc-add-to-cart-composite-extension' );
 
 		// Default Component Option
 		$selected_option = $product->get_component_default_option( $component_id );
@@ -224,6 +234,7 @@ class WC_CP_Display {
 			'component_data'    => $product->get_component_data( $component_id ),
 			'selected_option'   => $selected_option,
 		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+		
 	}
 
 	/**
@@ -905,9 +916,24 @@ class WC_CP_Display {
 			'is_wc_version_gte_2_3'                  => WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'yes' : 'no',
 			'show_quantity_buttons'                  => 'no',
 			'transition_type'                        => 'fade',
+			'block_components'						 => true,
 		) );
-
+		
+		global $post;
+			
+		if( $post instanceOf WP_Post ) {
+			
+			$product = new WC_Product($post);
+			
+			$params = array_merge($params, array(
+				'sku' => $product->get_sku(),
+				'weight' => $product->get_weight(),
+			));
+		
+		}
+		
 		wp_localize_script( 'wc-add-to-cart-composite', 'wc_composite_params', $params );
+		
 	}
 
 	/**
@@ -1124,8 +1150,49 @@ class WC_CP_Display {
 	 * @param  string 	$css
 	 * @return string
 	 */
-	function wc_cp_email_styles( $css ) {
+	public function wc_cp_email_styles( $css ) {
 		$css = $css . ".component_table_item td:nth-child(1) { padding-left: 35px !important; } .component_table_item td { border-top: none; }";
 		return $css;
 	}
+	
+	public function after_add_to_cart_button() {
+			
+		global $post;
+		
+		$bto_build_sku = get_post_meta($post->ID, '_bto_build_sku', true);
+		$bto_sku_start = get_post_meta($post->ID, '_bto_sku_start', true);
+		
+		?>
+		
+		<div class="composite_sku"></div>
+		
+		<?php if($bto_build_sku == 'yes') : ?>
+		
+			<input type="hidden" id="built_sku" name="built_sku" data-sku="<?php echo esc_attr( $bto_sku_start ); ?>" value="<?php echo esc_attr( $bto_sku_start ); ?>" />
+		
+		<?php endif;
+		
+	}
+	
+	public function wc_cp_unlimited_per_page_if_radio($per_page, $component_id, $product) {
+			
+		if($product->get_composite_selections_style() === 'radios') {
+			
+			$per_page = 9999;
+			
+		}
+		
+		return $per_page;
+		
+	}
+	
+	public function wc_cp_script_debug($params) {
+				
+		if(SCRIPT_DEBUG)
+			$params['script_debug'] = 'yes';
+		
+		return $params;
+		
+	}
+	
 }

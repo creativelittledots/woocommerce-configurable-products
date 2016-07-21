@@ -43,9 +43,6 @@ class WC_CP_Cart {
 		// Put back cart item data to allow re-ordering of composites
 		add_filter( 'woocommerce_order_again_cart_item_data', array( $this, 'wc_cp_order_again' ), 10, 3 );
 
-		// Filter cart item price
-		add_filter( 'woocommerce_cart_item_price', array( $this, 'wc_cp_cart_item_price' ), 11, 3 );
-
 		// Modify cart items subtotals according to the pricing strategy used (static / per-product)
 		add_filter( 'woocommerce_cart_item_subtotal', array( $this, 'wc_cp_item_subtotal' ), 11, 3 );
 		add_filter( 'woocommerce_checkout_item_subtotal', array( $this, 'wc_cp_item_subtotal' ), 11, 3 );
@@ -56,6 +53,22 @@ class WC_CP_Cart {
 		// Shipping fix - ensure that non-virtual containers/children, which are shipped, have a valid price that can be used for insurance calculations.
 		// Additionally, composited item weights may have to be added in the container.
 		add_filter( 'woocommerce_cart_shipping_packages', array( $this, 'wc_cp_shipping_packages_fix' ), 11 );
+		
+		// Add composite configuration data to all composited items
+		add_filter( 'woocommerce_add_cart_item', array( $this, 'wc_cp_add_cart_item' ), 20, 2 );   // Able
+		add_filter( 'woocommerce_get_cart_item_from_session', array($this, 'wc_cp_get_cart_item'), 5, 2 );   // Able
+		add_filter( 'woocommerce_get_item_data', array($this, 'wc_cp_get_cart_item_data'), 10, 2);   // Able
+		
+		add_filter( 'woocommerce_cart_item_weight', array($this, 'wc_cp_get_cart_item_weight'), 10, 4);  // Able
+		add_filter( 'woocommerce_cart_item_price', array( $this, 'wc_cp_cart_item_price' ), 11, 3 );  // Able
+		add_filter( 'woocommerce_checkout_item_price', array( $this, 'wc_cp_cart_item_price' ), 12, 3 );  // Able
+		add_filter( 'woocommerce_cart_item_tax', array( $this, 'wc_cp_cart_item_tax' ), 11, 3 );  // Able
+		add_filter( 'woocommerce_checkout_item_tax', array($this, 'wc_cp_cart_item_tax'), 11, 3);  // Able
+		add_filter( 'woocommerce_cart_item_total', array($this, 'wc_cp_cart_item_total'), 11, 3);  // Able
+		add_filter( 'woocommerce_checkout_item_total', array($this, 'wc_cp_cart_item_total'), 11, 3);  // Able
+		
+		add_filter( 'woocommerce_product_weight', array($this, 'wc_cp_ext_get_product_weight'), 10, 2); // Able
+			
 	}
 
 	/**
@@ -67,7 +80,7 @@ class WC_CP_Cart {
 	 * @return bool
 	 */
 	function wc_cp_validation( $add, $product_id, $product_quantity, $variation_id = '', $variations = array(), $cart_item_data = array() ) {
-
+	
 		global $woocommerce_composite_products;
 
 		// Get product type
@@ -121,157 +134,168 @@ class WC_CP_Cart {
 
 				// Prevent people from fucking around - only valid component options can be added to the cart
 				if ( ! in_array( $bundled_product_id, $woocommerce_composite_products->api->get_component_options( $composite_data[ $component_id ] ) ) ) {
-					return false;
+					//return false;
 				}
-
-				$item_quantity_min = absint( $composite_data[ $component_id ][ 'quantity_min' ] );
-				$item_quantity_max = absint( $composite_data[ $component_id ][ 'quantity_max' ] );
-
-				// Check quantity
-				if ( isset( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) && is_numeric( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) ) {
-
-					$item_quantity = absint( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] );
-
-				} elseif ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'quantity' ] ) && $order_again ) {
-
-					$item_quantity = absint( $cart_item_data[ 'composite_data' ][ $component_id ][ 'quantity' ] );
-
-				} else {
-					$item_quantity = $item_quantity_min;
-				}
-
-				$item_sold_individually = get_post_meta( $bundled_product_id, '_sold_individually', true );
-
-				if ( $item_sold_individually === 'yes' && $item_quantity > 1 ) {
-					$item_quantity = 1;
-				}
-
-				$quantity = $item_quantity * $product_quantity;
-
-				// Save for later
-				$validate_scenarios[ $component_id ]                        = array();
-				$validate_scenarios[ $component_id ][ 'quantity' ]          = $item_quantity;
-				$validate_scenarios[ $component_id ][ 'quantity_min' ]      = $item_quantity_min;
-				$validate_scenarios[ $component_id ][ 'quantity_max' ]      = $item_quantity_max;
-				$validate_scenarios[ $component_id ][ 'sold_individually' ] = $item_sold_individually;
-
-				// If quantity is zero, continue
-				if ( $quantity == 0 ) {
-					continue;
-				}
-
-				// Get bundled product type
-				$terms                = get_the_terms( $bundled_product_id, 'product_type' );
-				$bundled_product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
-
-				// Save for later
-				$validate_scenarios[ $component_id ][ 'product_type' ]      = $bundled_product_type;
-				$validate_scenarios[ $component_id ][ 'product_id' ]        = $bundled_product_id;
-
-				// Validate attributes
-				if ( $bundled_product_type == 'variable' ) {
-
-					if ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ] ) && $order_again ) {
-
-						$variation_id = $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ];
-
-					} elseif ( isset( $_REQUEST[ 'wccp_variation_id' ][ $component_id ] ) ) {
-
-						$variation_id = $_REQUEST[ 'wccp_variation_id' ][ $component_id ] ;
-					}
-
-					if ( isset( $variation_id ) && is_numeric( $variation_id ) && $variation_id > 1 ) {
-
-						// Add item for validation
-						$composited_stock->add_item( $bundled_product_id, $variation_id, $quantity );
-
-						// Save for later
-						$validate_scenarios[ $component_id ][ 'variation_id' ] = $variation_id;
-
+				
+				$bundled_product_ids = is_array($bundled_product_id) ? $bundled_product_id : array($bundled_product_id);
+				
+				foreach($bundled_product_ids as $bundled_product_id) {
+					
+					if(!$bundled_product_id)
+						continue;
+					
+					$item_quantity_min = absint( $composite_data[ $component_id ][ 'quantity_min' ] );
+					$item_quantity_max = absint( $composite_data[ $component_id ][ 'quantity_max' ] );
+	
+					// Check quantity
+					if ( isset( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) && is_numeric( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) ) {
+	
+						$item_quantity = absint( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] );
+	
+					} elseif ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'quantity' ] ) && $order_again ) {
+	
+						$item_quantity = absint( $cart_item_data[ 'composite_data' ][ $component_id ][ 'quantity' ] );
+	
 					} else {
-
-    					wc_add_notice( sprintf( __( 'This &quot;%1$s&quot; configuration cannot be added to the cart. Please choose &quot;%2$s&quot; options&hellip;', 'woocommerce-composite-products' ), get_the_title( $product_id ), apply_filters( 'woocommerce_composite_component_title', $composite_data[ $component_id ][ 'title' ], $component_id, $product_id ) ), 'error' );
-						return false;
+						$item_quantity = $item_quantity_min;
 					}
-
-					// Verify all attributes for the variable product were set
-					$attributes = ( array ) maybe_unserialize( get_post_meta( $bundled_product_id, '_product_attributes', true ) );
-					$variations = array();
-					$all_set    = true;
-
-		    		$variation_data = array();
-
-					$custom_fields = get_post_meta( $variation_id );
-
-					// Get the variation attributes from meta
-					foreach ( $custom_fields as $name => $value ) {
-
-						if ( ! strstr( $name, 'attribute_' ) ) {
-							continue;
+	
+					$item_sold_individually = get_post_meta( $bundled_product_id, '_sold_individually', true );
+	
+					if ( $item_sold_individually === 'yes' && $item_quantity > 1 ) {
+						$item_quantity = 1;
+					}
+	
+					$quantity = $item_quantity * $product_quantity;
+	
+					// Save for later
+					$validate_scenarios[ $component_id ]                        = array();
+					$validate_scenarios[ $component_id ][ 'quantity' ]          = $item_quantity;
+					$validate_scenarios[ $component_id ][ 'quantity_min' ]      = $item_quantity_min;
+					$validate_scenarios[ $component_id ][ 'quantity_max' ]      = $item_quantity_max;
+					$validate_scenarios[ $component_id ][ 'sold_individually' ] = $item_sold_individually;
+	
+					// If quantity is zero, continue
+					if ( $quantity == 0 ) {
+						continue;
+					}
+	
+					// Get bundled product type
+					$terms                = get_the_terms( $bundled_product_id, 'product_type' );
+					$bundled_product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
+	
+					// Save for later
+					$validate_scenarios[ $component_id ][ 'product_type' ]      = $bundled_product_type;
+					$validate_scenarios[ $component_id ][ 'product_id' ]        = $bundled_product_id;
+	
+					// Validate attributes
+					if ( $bundled_product_type == 'variable' ) {
+	
+						if ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ] ) && $order_again ) {
+	
+							$variation_id = $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ];
+	
+						} elseif ( isset( $_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $bundled_product_id ] ) ) {
+	
+							$variation_id = $_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $bundled_product_id ];
 						}
-
-						$variation_data[ $name ] = sanitize_title( $value[0] );
-					}
-
-					// Verify all attributes are set and valid
-					foreach ( $attributes as $attribute ) {
-
-					    if ( ! $attribute[ 'is_variation' ] ) {
-					    	continue;
-					    }
-
-					    $taxonomy = 'attribute_' . sanitize_title( $attribute[ 'name' ] );
-
-						if ( ! empty( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ] ) ) {
-
-					        // Get value from post data
-					        // Don't use woocommerce_clean as it destroys sanitized characters
-					        $value = sanitize_title( trim( stripslashes( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ] ) ) );
-
-					        // Get valid value from variation
-					        $valid_value = $variation_data[ $taxonomy ];
-
-					        // Allow if valid
-					        if ( $valid_value == '' || $valid_value == $value ) {
-					            continue;
-					        }
-
-						} elseif ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'attributes' ] ) && isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ] ) && $order_again ) {
-
-							$value = sanitize_title( trim( stripslashes( $cart_item_data[ 'composite_data' ][ $component_id ][ 'attributes' ][ $taxonomy ] ) ) );
-
-							$valid_value = $variation_data[ $taxonomy ];
-
-							if ( $valid_value == '' || $valid_value == $value ) {
+	
+						if ( isset( $variation_id ) && is_numeric( $variation_id ) && $variation_id > 1 ) {
+	
+							// Add item for validation
+							$composited_stock->add_item( $bundled_product_id, $variation_id, $quantity );
+	
+							// Save for later
+							$validate_scenarios[ $component_id ][ 'variation_id' ] = $variation_id;
+	
+						} else {
+							
+	    					wc_add_notice( sprintf( __( 'This &quot;%1$s&quot; configuration cannot be added to the cart. Please choose &quot;%2$s&quot; options&hellip;', 'woocommerce-composite-products' ), get_the_title( $product_id ), apply_filters( 'woocommerce_composite_component_title', $composite_data[ $component_id ][ 'title' ], $component_id, $product_id ) ), 'error' );
+	    					
+							return false;
+						}
+	
+						// Verify all attributes for the variable product were set
+						$attributes = ( array ) maybe_unserialize( get_post_meta( $bundled_product_id, '_product_attributes', true ) );
+						$variations = array();
+						$all_set    = true;
+	
+			    		$variation_data = array();
+	
+						$custom_fields = get_post_meta( $variation_id );
+	
+						// Get the variation attributes from meta
+						foreach ( $custom_fields as $name => $value ) {
+	
+							if ( ! strstr( $name, 'attribute_' ) ) {
 								continue;
 							}
+	
+							$variation_data[ $name ] = sanitize_title( $value[0] );
 						}
-
-					    $all_set = false;
+	
+						// Verify all attributes are set and valid
+						foreach ( $attributes as $attribute ) {
+	
+						    if ( ! $attribute[ 'is_variation' ] ) {
+						    	continue;
+						    }
+	
+						    $taxonomy = 'attribute_' . sanitize_title( $attribute[ 'name' ] );
+	
+							if ( ! empty( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ] ) ) {
+	
+						        // Get value from post data
+						        // Don't use woocommerce_clean as it destroys sanitized characters
+						        $value = sanitize_title( trim( stripslashes( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ][ $bundled_product_id ] ) ) );
+	
+						        // Get valid value from variation
+						        $valid_value = $variation_data[ $taxonomy ];
+	
+						        // Allow if valid
+						        if ( $valid_value == '' || $valid_value == $value ) {
+						            continue;
+						        }
+	
+							} elseif ( isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'attributes' ] ) && isset( $cart_item_data[ 'composite_data' ][ $component_id ][ 'variation_id' ] ) && $order_again ) {
+	
+								$value = sanitize_title( trim( stripslashes( $cart_item_data[ 'composite_data' ][ $component_id ][ 'attributes' ][ $taxonomy ] ) ) );
+	
+								$valid_value = $variation_data[ $taxonomy ];
+	
+								if ( $valid_value == '' || $valid_value == $value ) {
+									continue;
+								}
+							}
+	
+						    $all_set = false;
+						}
+	
+						if ( ! $all_set ) {
+	    					wc_add_notice( sprintf( __( 'This &quot;%1$s&quot; configuration cannot be added to the cart. Please choose &quot;%2$s&quot; options&hellip;', 'woocommerce-composite-products' ), get_the_title( $product_id ), apply_filters( 'woocommerce_composite_component_title', $composite_data[ $component_id ][ 'title' ], $component_id, $product_id ) ), 'error' );
+							return false;
+						}
+	
+					} elseif ( $bundled_product_type == 'simple' ) {
+	
+						// Add item for validation
+						$composited_stock->add_item( $bundled_product_id, false, $quantity );
+	
+					} else {
+	
+						// Add item for validation
+						$composited_stock->add_item( $bundled_product_id, false, $quantity );
 					}
-
-					if ( ! $all_set ) {
-    					wc_add_notice( sprintf( __( 'This &quot;%1$s&quot; configuration cannot be added to the cart. Please choose &quot;%2$s&quot; options&hellip;', 'woocommerce-composite-products' ), get_the_title( $product_id ), apply_filters( 'woocommerce_composite_component_title', $composite_data[ $component_id ][ 'title' ], $component_id, $product_id ) ), 'error' );
+	
+					if ( ! apply_filters( 'woocommerce_composite_component_add_to_cart_validation', true, $product_id, $component_id, $bundled_product_id, $quantity, $cart_item_data ) ) {
 						return false;
 					}
-
-				} elseif ( $bundled_product_type == 'simple' ) {
-
-					// Add item for validation
-					$composited_stock->add_item( $bundled_product_id, false, $quantity );
-
-				} else {
-
-					// Add item for validation
-					$composited_stock->add_item( $bundled_product_id, false, $quantity );
+	
+					// Allow composited products to add extra items to the stock manager
+					$composited_stock->add_stock( apply_filters( 'woocommerce_composite_component_associated_stock', '', $product_id, $component_id, $bundled_product_id, $quantity ) );
+					
 				}
 
-				if ( ! apply_filters( 'woocommerce_composite_component_add_to_cart_validation', true, $product_id, $component_id, $bundled_product_id, $quantity, $cart_item_data ) ) {
-					return false;
-				}
-
-				// Allow composited products to add extra items to the stock manager
-				$composited_stock->add_stock( apply_filters( 'woocommerce_composite_component_associated_stock', '', $product_id, $component_id, $bundled_product_id, $quantity ) );
 			}
 
 			/**
@@ -314,30 +338,37 @@ class WC_CP_Cart {
 					if ( $validate_product_id === '0' && $component_data[ 'optional' ] === 'no' ) {
 						$mandatory_override_check = true;
 					}
-
-					if ( ! empty( $scenarios_for_products[ 'scenario_data' ][ $component_id ][ $validate_product_id ] ) ) {
-						$scenarios_for_product              = $scenarios_for_products[ 'scenario_data' ][ $component_id ][ $validate_product_id ];
-						$compat_group_scenarios_for_product = $woocommerce_composite_products->api->filter_scenarios_by_type( $scenarios_for_product, 'compat_group', $scenarios_for_products );
-					}
-
-					if ( empty( $compat_group_scenarios_for_product ) || $mandatory_override_check ) {
-
-						if ( $validate_product_id === '0' ) {
-							// Allow 3rd parties to override notices for empty selections in non-optional components conditionally through scenarios
-							if ( apply_filters( 'woocommerce_composite_validation_component_is_mandatory', true, $component_id, $validate_scenarios[ $component_id ], $common_scenarios, $scenarios_for_products, $product_id ) ) {
-								wc_add_notice( sprintf( __( 'Please select a &quot;%s&quot; option.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ), 'error' );
+					
+					$validate_product_ids = is_array($validate_product_id) ? $validate_product_id : array($validate_product_id);
+					
+					foreach($validate_product_ids as $validate_product_id) {
+						
+						if ( ! empty( $scenarios_for_products[ 'scenario_data' ][ $component_id ][ $validate_product_id ] ) ) {
+							$scenarios_for_product              = $scenarios_for_products[ 'scenario_data' ][ $component_id ][ $validate_product_id ];
+							$compat_group_scenarios_for_product = $woocommerce_composite_products->api->filter_scenarios_by_type( $scenarios_for_product, 'compat_group', $scenarios_for_products );
+						}
+	
+						if ( empty( $compat_group_scenarios_for_product ) || $mandatory_override_check ) {
+	
+							if ( $validate_product_id === '0' ) {
+								// Allow 3rd parties to override notices for empty selections in non-optional components conditionally through scenarios
+								if ( apply_filters( 'woocommerce_composite_validation_component_is_mandatory', true, $component_id, $validate_scenarios[ $component_id ], $common_scenarios, $scenarios_for_products, $product_id ) ) {
+									wc_add_notice( sprintf( __( 'Please select a &quot;%s&quot; option.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ), 'error' );
+									return false;
+								}
+	
+							} else {
+								wc_add_notice( sprintf( __( 'Please select a different &quot;%s&quot; option &mdash; the selected product cannot be purchased at the moment.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ), 'error' );
 								return false;
 							}
-
+	
 						} else {
-							wc_add_notice( sprintf( __( 'Please select a different &quot;%s&quot; option &mdash; the selected product cannot be purchased at the moment.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ), 'error' );
-							return false;
+							$common_scenarios              = array_intersect( $common_scenarios, $scenarios_for_product );
+							$common_compat_group_scenarios = array_intersect( $common_compat_group_scenarios, $compat_group_scenarios_for_product );
 						}
-
-					} else {
-						$common_scenarios              = array_intersect( $common_scenarios, $scenarios_for_product );
-						$common_compat_group_scenarios = array_intersect( $common_compat_group_scenarios, $compat_group_scenarios_for_product );
+						
 					}
+					
 				}
 			}
 
@@ -369,6 +400,7 @@ class WC_CP_Cart {
 			}
 
 			$add = apply_filters( 'woocommerce_add_to_cart_composite_validation', $add, $product_id, $composited_stock );
+
 		}
 
 		return $add;
@@ -441,7 +473,7 @@ class WC_CP_Cart {
 	 * @return void
 	 */
 	function wc_cp_add_cart_item_data( $cart_item_data, $product_id ) {
-
+	
 		global $woocommerce_composite_products;
 
 		// Get product type
@@ -460,87 +492,97 @@ class WC_CP_Cart {
 			foreach ( $_REQUEST[ 'wccp_component_selection' ] as $component_id => $composited_product_id ) {
 
 				$composited_product_quantity = isset( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) ? absint( $_REQUEST[ 'wccp_component_quantity' ][ $component_id ] ) : absint( $composite_data[ $component_id ][ 'quantity_min' ] );
+				
+				$composited_product_ids = is_array($composited_product_id) ? $composited_product_id : array($composited_product_id);
+				
+				foreach($composited_product_ids as $i => $composited_product_id) {
+					
+					$new_component_id = $i ? $component_id . $i : $component_id;
+					
+					if ( $composited_product_id ) {
 
-				if ( $composited_product_id ) {
-
-					$composited_product_wrapper = $composite->get_composited_product( $component_id, $composited_product_id );
-
-					if ( ! $composited_product_wrapper ) {
-						continue;
-					}
-
-					$composited_product      = $composited_product_wrapper->get_product();
-					$composited_product_type = $composited_product->product_type;
-
-					if ( $composited_product->sold_individually === 'yes' && $composited_product_quantity > 1 ) {
-						$composited_product_quantity = 1;
-					}
-				}
-
-				$composite_config[ $component_id ][ 'product_id' ]   = $composited_product_id;
-				$composite_config[ $component_id ][ 'composite_id' ] = $product_id;
-				$composite_config[ $component_id ][ 'quantity' ]     = $composited_product_quantity;
-				$composite_config[ $component_id ][ 'title' ]        = $composite_data[ $component_id ][ 'title' ];
-				$composite_config[ $component_id ][ 'quantity_min' ] = $composite_data[ $component_id ][ 'quantity_min' ];
-				$composite_config[ $component_id ][ 'quantity_max' ] = $composite_data[ $component_id ][ 'quantity_max' ];
-				$composite_config[ $component_id ][ 'discount' ]     = isset( $composite_data[ $component_id ][ 'discount' ] ) ? $composite_data[ $component_id ][ 'discount' ] : 0;
-				$composite_config[ $component_id ][ 'optional' ]     = $composite_data[ $component_id ][ 'optional' ];
-
-				// Continue when selected product is 'None'
-				if ( ! $composited_product_id || $composited_product_id === '' || $composited_product_quantity === 0 ) {
-
-					$composite_config[ $component_id ][ 'type' ]  = 'none';
-					$composite_config[ $component_id ][ 'price' ] = 0;
-					continue;
-
-				} else {
-					$composite_config[ $component_id ][ 'type' ] = $composited_product_type;
-				}
-
-				if ( $composited_product_type === 'variable' ) {
-
-					$attributes_config 	= array();
-					$attributes 		= ( array ) maybe_unserialize( get_post_meta( $composited_product_id, '_product_attributes', true ) );
-
-					foreach ( $attributes as $attribute ) {
-
-						if ( ! $attribute[ 'is_variation' ] )
+						$composited_product_wrapper = $composite->get_composited_product( $component_id, $composited_product_id );
+	
+						if ( ! $composited_product_wrapper ) {
 							continue;
-
-						$taxonomy = 'attribute_' . sanitize_title( $attribute[ 'name' ] );
-
-						// has already been checked for validity in function 'wc_cp_validation'
-						$value    = sanitize_title( trim( stripslashes( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ] ) ) );
-
-						if ( $attribute[ 'is_taxonomy' ] ) {
-
-							$attributes_config[ $taxonomy ] = $value;
-
-						} else {
-
-						    // For custom attributes, get the name from the slug
-						    $options = array_map( 'trim', explode( WC_DELIMITER, $attribute[ 'value' ] ) );
-
-						    foreach ( $options as $option ) {
-						    	if ( sanitize_title( $option ) == $value ) {
-						    		$value = $option;
-						    		break;
-						    	}
-						    }
-
-							$attributes_config[ $taxonomy ] = $value;
 						}
-
+	
+						$composited_product      = $composited_product_wrapper->get_product();
+						$composited_product_type = $composited_product->product_type;
+	
+						if ( $composited_product->sold_individually === 'yes' && $composited_product_quantity > 1 ) {
+							$composited_product_quantity = 1;
+						}
 					}
-
-					$composite_config[ $component_id ][ 'variation_id' ] = $_REQUEST[ 'wccp_variation_id' ][ $component_id ];
-					$composite_config[ $component_id ][ 'attributes' ]   = $attributes_config;
+	
+					$composite_config[ $new_component_id ][ 'component_id' ]   = $component_id;
+					$composite_config[ $new_component_id ][ 'product_id' ]   = $composited_product_id;
+					$composite_config[ $new_component_id ][ 'composite_id' ] = $product_id;
+					$composite_config[ $new_component_id ][ 'quantity' ]     = $composited_product_quantity;
+					$composite_config[ $new_component_id ][ 'title' ]        = $composite_data[ $component_id ][ 'title' ];
+					$composite_config[ $new_component_id ][ 'quantity_min' ] = $composite_data[ $component_id ][ 'quantity_min' ];
+					$composite_config[ $new_component_id ][ 'quantity_max' ] = $composite_data[ $component_id ][ 'quantity_max' ];
+					$composite_config[ $new_component_id ][ 'discount' ]     = isset( $composite_data[ $component_id ][ 'discount' ] ) ? $composite_data[ $component_id ][ 'discount' ] : 0;
+					$composite_config[ $new_component_id ][ 'optional' ]     = $composite_data[ $component_id ][ 'optional' ];
+	
+					// Continue when selected product is 'None'
+					if ( ! $composited_product_id || $composited_product_id === '' || $composited_product_quantity === 0 ) {
+	
+						$composite_config[ $new_component_id ][ 'type' ]  = 'none';
+						$composite_config[ $new_component_id ][ 'price' ] = 0;
+						continue;
+	
+					} else {
+						$composite_config[ $new_component_id ][ 'type' ] = $composited_product_type;
+					}
+	
+					if ( $composited_product_type === 'variable' ) {
+	
+						$attributes_config 	= array();
+						$attributes 		= ( array ) maybe_unserialize( get_post_meta( $composited_product_id, '_product_attributes', true ) );
+	
+						foreach ( $attributes as $attribute ) {
+	
+							if ( ! $attribute[ 'is_variation' ] )
+								continue;
+	
+							$taxonomy = 'attribute_' . sanitize_title( $attribute[ 'name' ] );
+	
+							// has already been checked for validity in function 'wc_cp_validation'
+							$value    = sanitize_title( trim( stripslashes( $_REQUEST[ 'wccp_' . $taxonomy ][ $component_id ][ $composited_product_id ] ) ) );
+	
+							if ( $attribute[ 'is_taxonomy' ] ) {
+	
+								$attributes_config[ $taxonomy ] = $value;
+	
+							} else {
+	
+							    // For custom attributes, get the name from the slug
+							    $options = array_map( 'trim', explode( WC_DELIMITER, $attribute[ 'value' ] ) );
+	
+							    foreach ( $options as $option ) {
+							    	if ( sanitize_title( $option ) == $value ) {
+							    		$value = $option;
+							    		break;
+							    	}
+							    }
+	
+								$attributes_config[ $taxonomy ] = $value;
+							}
+	
+						}
+	
+						$composite_config[ $new_component_id ][ 'variation_id' ] = $_REQUEST[ 'wccp_variation_id' ][ $component_id ][ $composited_product_id ];
+						$composite_config[ $new_component_id ][ 'attributes' ]   = $attributes_config;
+					}
+	
+					$composited_product_variation_id              = isset( $composite_config[ $new_component_id ][ 'variation_id' ] ) ? $composite_config[ $new_component_id ][ 'variation_id' ] : '';
+					$composite_config[ $new_component_id ][ 'price' ] = $this->wc_cp_get_composited_product_price( $composited_product_id, $composited_product_variation_id, $component_id, $composite );
+	
+					$composite_config[ $new_component_id ] = apply_filters( 'woocommerce_composite_component_cart_item_identifier', $composite_config[ $new_component_id ], $component_id );
+				
 				}
 
-				$composited_product_variation_id              = isset( $composite_config[ $component_id ][ 'variation_id' ] ) ? $composite_config[ $component_id ][ 'variation_id' ] : '';
-				$composite_config[ $component_id ][ 'price' ] = $this->wc_cp_get_composited_product_price( $composited_product_id, $composited_product_variation_id, $component_id, $composite );
-
-				$composite_config[ $component_id ] = apply_filters( 'woocommerce_composite_component_cart_item_identifier', $composite_config[ $component_id ], $component_id );
 			}
 
 			$cart_item_data[ 'composite_data' ] = $composite_config;
@@ -620,7 +662,7 @@ class WC_CP_Cart {
 	 * @return void
 	 */
 	function wc_cp_add_items_to_cart( $item_cart_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
-
+	
 		global $woocommerce_composite_products;
 
 		// Runs when adding container item - adds composited items
@@ -635,10 +677,12 @@ class WC_CP_Cart {
 
 			// This id is unique, so that composited and non-composited versions of the same product will be added separately to the cart.
 			$composited_cart_data = array( 'composite_item' => '', 'composite_parent' => $item_cart_key, 'composite_data' => $cart_item_data[ 'composite_data' ] );
+			
+			$added_to_cart = array();
 
 			// Now add all items - yay!
 			foreach ( $cart_item_data[ 'composite_data' ] as $item_id => $composite_item_data ) {
-
+				
 				$composited_item_cart_data = $composited_cart_data;
 
 				$composited_item_cart_data[ 'composite_item' ] = $item_id;
@@ -668,20 +712,29 @@ class WC_CP_Cart {
 
 				// Load child cart item data from the parent cart item data array
 				$composited_item_cart_data = $woocommerce_composite_products->compatibility->get_composited_cart_item_data_from_parent( $composited_item_cart_data, $cart_item_data );
+				
+				$composited_product_ids = is_array($composited_product_id) ? $composited_product_id : array($composited_product_id);
+				
+				foreach($composited_product_ids as $composited_product_id) {
+					
+					$added_to_cart[] = $composited_product_id;
+					
+					// Prepare for adding children to cart
+					$woocommerce_composite_products->compatibility->before_composited_add_to_cart( $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
+	
+					// Add to cart
+					$composited_item_cart_key = $this->composited_add_to_cart( $product_id, $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
+	
+					if ( $composited_item_cart_key && ! in_array( $composited_item_cart_key, WC()->cart->cart_contents[ $item_cart_key ][ 'composite_children' ] ) ) {
+						WC()->cart->cart_contents[ $item_cart_key ][ 'composite_children' ][] = $composited_item_cart_key;
+					}
+	
+					// Finish
+					$woocommerce_composite_products->compatibility->after_composited_add_to_cart( $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
 
-				// Prepare for adding children to cart
-				$woocommerce_composite_products->compatibility->before_composited_add_to_cart( $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
-
-				// Add to cart
-				$composited_item_cart_key = $this->composited_add_to_cart( $product_id, $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
-
-				if ( $composited_item_cart_key && ! in_array( $composited_item_cart_key, WC()->cart->cart_contents[ $item_cart_key ][ 'composite_children' ] ) ) {
-					WC()->cart->cart_contents[ $item_cart_key ][ 'composite_children' ][] = $composited_item_cart_key;
 				}
-
-				// Finish
-				$woocommerce_composite_products->compatibility->after_composited_add_to_cart( $composited_product_id, $quantity, $variation_id, $variations, $composited_item_cart_data );
 			}
+			
 		}
 	}
 
@@ -1011,39 +1064,6 @@ class WC_CP_Cart {
 	}
 
 	/**
-	 * Modifies the cart.php & review-order.php templates formatted html prices visibility depending on pricing strategy.
-	 *
-	 * @param  string 	$price
-	 * @param  array 	$values
-	 * @param  string 	$cart_item_key
-	 * @return string
-	 */
-	function wc_cp_cart_item_price( $price, $values, $cart_item_key ) {
-
-		if ( empty( WC()->cart ) ) {
-			return $price;
-		}
-
-		if ( ! empty( $values[ 'composite_parent' ] ) ) {
-
-			$parent_cart_key = $values[ 'composite_parent' ];
-
-			if ( isset( WC()->cart->cart_contents[ $parent_cart_key ] ) && ! WC()->cart->cart_contents[ $parent_cart_key ][ 'data' ]->is_priced_per_product() && $values[ 'data' ]->price == 0 ) {
-				return '';
-			}
-		}
-
-		if ( ! empty( $values[ 'composite_children' ] ) ) {
-
-			if ( $values[ 'data' ]->is_priced_per_product() && $values[ 'data' ]->get_price() == 0 ) {
-				return '';
-			}
-		}
-
-		return $price;
-	}
-
-	/**
 	 * Outputs a formatted subtotal.
 	 *
 	 * @param  WC_Product 	$product
@@ -1289,5 +1309,288 @@ class WC_CP_Cart {
 		}
 
 		return $packages;
+	}
+	
+	/**
+	 * Adds configuration-specific cart-item data.
+	 *
+	 * @param  array 	$cart_item_data
+	 * @param  int 		$product_id
+	 * @return void
+	 */
+	function wc_cp_add_cart_item( $cart_item ) {
+		
+		global $woocommerce_composite_products;
+
+		// Get product type
+		$product = $cart_item['data'];
+
+		if($product->is_type('composite')) {
+			
+			$bto_build_sku = get_post_meta( $product->id, '_bto_build_sku', true );
+			
+			if($bto_build_sku == 'yes') {
+				
+				$skus = array($product->get_sku());
+				
+			}
+			
+			$weights = array($product->get_weight());
+			
+			$bto_data = $product->get_composite_data();
+			
+			// Whats in the cart first
+			foreach($cart_item['composite_data'] as $i => $composite_data) {
+				
+				$data = $bto_data[$composite_data['component_id']];
+				
+				$composited_product = new WC_Product($composite_data['product_id']);
+				
+				if($bto_build_sku == 'yes') {
+				
+					if($data['affect_sku'] == 'yes' && $data['affect_sku_order'] && isset($data['sku_options'][$composited_product->id])) {
+						
+						$skus[$data['affect_sku_order']] = $data['sku_options'][$composited_product->id];
+						
+					}
+					
+					elseif(isset($data['optional']) && $data['optional'] == 'yes' && $data['affect_sku'] == 'yes' && $data['affect_sku_order'] && isset($data['sku_options']['-1'])) {
+						
+						$skus[$data['affect_sku_order']] = $data['sku_options']['-1'];
+						
+					}
+					
+				}
+				
+				$weights[] = $composited_product->get_weight();
+				
+			}
+			
+			$cart_item['weight'] = apply_filters('woocommerce_composite_products_extension_product_weight', array_sum( $weights ), $weights, $bto_data, $product, $cart_item);
+			
+			if($bto_build_sku == 'yes') {	
+			
+				ksort($skus);
+			
+				$cart_item['variation']['SKU'] = apply_filters('woocommerce_composite_products_extension_sku_built', implode('', $skus), $skus, $bto_data, $product, $cart_item);
+				
+			}
+			
+		}
+
+		return $cart_item;
+	}
+	
+	function wc_cp_get_cart_item($cart_item, $values) {
+		
+		$cart_item = $this->wc_cp_add_cart_item( $cart_item );
+		   
+		return $cart_item;
+		
+	}
+	
+	/**
+	 * Gets configuration-specific cart-item Skus
+	 *
+	 * @param  array 	$item_data
+	 * @param  array 	$cart_item
+	 * @return array	$item_data
+	 */
+	
+	function wc_cp_get_cart_item_data($item_data, $cart_item) {
+		
+		if(isset($cart_item['variation']['SKU']) && $cart_item['variation']['SKU'] && empty( $cart_item['data']->variation_id )) {
+			
+			$item_data['SKU'] = array('name' => 'SKU', 'value' => $cart_item['variation']['SKU']);
+			
+		}
+		
+		return $item_data;
+		
+	}
+	
+	/**
+	 * Gets configuration-specific cart-item weight
+	 *
+	 * @param  array 	$item_weight
+	 * @param  object 	$_product
+	 * @param  array	$cart_item
+	 * @param  string	$cart_item_key
+	 * @return array	$item_weight
+	 */
+	
+	function wc_cp_get_cart_item_weight( $item_weight, $_product, $cart_item, $cart_item_key ) {
+		
+		if( $_product->is_type('composite') && isset($cart_item['weight']) && $cart_item['weight'] ) {
+			
+			$item_weight = $cart_item['weight'];
+			
+		}
+		
+		return $item_weight;
+		
+	}
+	
+	function wc_cp_cart_item_total( $total, $values, $cart_item_key ) {
+
+		if ( empty( WC()->cart ) ) {
+			
+			return $total;
+			
+		}
+
+		if ( ! empty( $values[ 'composite_parent' ] ) ) {
+
+			$parent_cart_key = $values[ 'composite_parent' ];
+
+			if ( isset( WC()->cart->cart_contents[ $parent_cart_key ] ) && ! WC()->cart->cart_contents[ $parent_cart_key ][ 'data' ]->is_priced_per_product() && $values[ 'data' ]->price == 0 ) {
+				
+				return '';
+				
+			}
+			
+		}
+
+		if ( ! empty( $values[ 'composite_children' ] ) ) {
+
+			$composited_items_total = 0;
+			
+			$composite_total = $values[ 'data' ]->get_price_including_tax( $values[ 'quantity' ] );
+
+			foreach ( WC()->cart->cart_contents as $cart_key => $cart_data ) {
+
+				if ( apply_filters( 'woocommerce_cart_item_is_child_of_composite', in_array( $cart_key, $values[ 'composite_children' ] ), $cart_key, $cart_data, $cart_item_key, $values ) ) {
+
+					$composite_child = $cart_data;
+
+					$composited_items_total += $composite_child[ 'data' ]->get_price_including_tax( $values[ 'quantity' ] );
+					
+				}
+				
+			}
+
+			$total = $composite_total + $composited_items_total;
+
+			return wc_price($total);
+			
+		}
+
+		return $total;
+		
+	}
+	
+	function wc_cp_cart_item_tax( $tax, $values, $cart_item_key ) {
+
+		if ( empty( WC()->cart ) ) {
+			
+			return $tax;
+			
+		}
+
+		if ( ! empty( $values[ 'composite_parent' ] ) ) {
+
+			$parent_cart_key = $values[ 'composite_parent' ];
+
+			if ( isset( WC()->cart->cart_contents[ $parent_cart_key ] ) && ! WC()->cart->cart_contents[ $parent_cart_key ][ 'data' ]->is_priced_per_product() && $values[ 'data' ]->price == 0 ) {
+				
+				return '';
+				
+			}
+			
+		}
+
+		if ( ! empty( $values[ 'composite_children' ] ) ) {
+
+			$composited_items_tax = 0;
+			
+			$composite_tax = $values[ 'data' ]->get_price_including_tax( $values[ 'quantity' ] ) - $values[ 'data' ]->get_price_excluding_tax( $values[ 'quantity' ] );
+
+			foreach ( WC()->cart->cart_contents as $cart_key => $cart_data ) {
+
+				if ( apply_filters( 'woocommerce_cart_item_is_child_of_composite', in_array( $cart_key, $values[ 'composite_children' ] ), $cart_key, $cart_data, $cart_item_key, $values ) ) {
+
+					$composite_child = $cart_data;
+
+					$composited_items_tax +=  $composite_child[ 'data' ]->get_price_including_tax( $values[ 'quantity' ] ) - $composite_child[ 'data' ]->get_price_excluding_tax( $values[ 'quantity' ] );
+					
+				}
+				
+			}
+
+			$tax = $composite_tax + $composited_items_tax;
+
+			return wc_price($tax);
+			
+		}
+
+		return $tax;
+	}
+	
+	function wc_cp_cart_item_price( $price, $values, $cart_item_key ) {
+
+		if ( empty( WC()->cart ) ) {
+			
+			return $price;
+			
+		}
+
+		if ( ! empty( $values[ 'composite_parent' ] ) ) {
+
+			$parent_cart_key = $values[ 'composite_parent' ];
+
+			if ( isset( WC()->cart->cart_contents[ $parent_cart_key ] ) && ! WC()->cart->cart_contents[ $parent_cart_key ][ 'data' ]->is_priced_per_product() && $values[ 'data' ]->price == 0 ) {
+				
+				return '';
+				
+			}
+			
+		}
+
+		if ( ! empty( $values[ 'composite_children' ] ) ) {
+
+			$composited_items_price = 0;
+			
+			$composite_price = $values[ 'data' ]->get_price_excluding_tax();
+
+			foreach ( WC()->cart->cart_contents as $cart_key => $cart_data ) {
+
+				if ( apply_filters( 'woocommerce_cart_item_is_child_of_composite', in_array( $cart_key, $values[ 'composite_children' ] ), $cart_key, $cart_data, $cart_item_key, $values ) ) {
+
+					$composite_child = $cart_data;
+
+					$composited_items_price += $composite_child[ 'data' ]->get_price_excluding_tax();
+					
+				}
+			}
+
+			$price = $composite_price + $composited_items_price;
+
+			return wc_price( $price );
+			
+		}
+
+		return $price;
+	}
+	
+	function wc_cp_ext_get_product_weight($weight, $product) {
+		
+		if(is_cart() && $product->is_type('composite')) {
+			
+			$cart_item_key = WC()->cart->generate_cart_id($product->id);
+			
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+
+			 	if($cart_item['product_id'] == $product->id ){
+			    
+			    $weight = $cart_item['weight'];
+			    
+			 	}
+			 	
+			}
+			
+		}
+		
+		return $weight;
+		
 	}
 }
