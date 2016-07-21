@@ -69,11 +69,18 @@ class WC_CP_Admin {
 
 		// Advanced component configuration
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_default_option' ), 5, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_recommended_option' ), 6, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_options_style' ), 7, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_sort_filter_show_orderby' ), 10, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_sort_filter_show_filters' ), 15, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_title' ), 20, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_description' ), 25, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_thumbnail' ), 30, 3 );
+		
+		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
+		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
+		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_options' ), 15, 3 );
+		add_action( 'woocommerce_composite_component_admin_price_html', array( $this, 'component_price_options' ), 5, 3 );
 
 		// Scenario options
 		add_action( 'woocommerce_composite_scenario_admin_info_html', array( $this, 'scenario_info' ), 10, 4 );
@@ -83,27 +90,8 @@ class WC_CP_Admin {
 		// Delete component options query cache on product save
 		add_action( 'woocommerce_delete_product_transients', array( $this, 'delete_cp_query_transients' ) );
 		
-		add_action( 'admin_enqueue_scripts', array($this, 'admin_composite_ext_scripts') ); // Able
-		add_filter( 'woocommerce_composite_process_component_data', array($this, 'save_component_data'), 10, 4); // Able
-		add_action( 'save_post_product', array($this, 'save_product') ); // Able
-		add_filter( 'woocommerce_composite_extension_admin_component_tabs', array($this, 'admin_add_component_tabs') ); // Able
-		add_filter( 'woocommerce_composite_products_selection_modes', array($this, 'admin_add_selection_modes') ); // Able
-		
-		add_action( 'woocommerce_composite_products_admin_before_components', array($this, 'add_admin_before_components') ); // Able
-		
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_recommended_option' ), 6, 3 ); // Able
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_options_style' ), 7, 3 ); // Able
-		
-		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 ); // Able
-		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 ); // Able
-		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_options' ), 15, 3 ); // Able
-		
-		add_action( 'woocommerce_composite_products_admin_before_add_scenario_button', array($this, 'import_export_scenarios') ); // For Import Scenarios
-		
 		add_action( 'admin_post_export_scenarios', array($this, 'export_scenarios') ); // For Export Scenarios
-		
 		add_action( 'woocommerce_process_product_meta_composite', array($this, 'import_scenarios'), 15); // For Import Scenarios
-		
 		add_action( 'post_edit_form_tag', array($this, 'add_enctype_to_edit_form') ); // For Import Scenarios
 			
 	}
@@ -900,9 +888,9 @@ class WC_CP_Admin {
 	 *
 	 * @return void
 	 */
-	function composite_admin_scripts() {
+	function composite_admin_scripts( $hook ) {
 
-		global $woocommerce_composite_products;
+		global $post, $woocommerce_composite_products;
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
@@ -953,6 +941,17 @@ class WC_CP_Admin {
 
 		if ( in_array( $screen->id, array( 'shop_order', 'edit-shop_order' ) ) )
 			wp_enqueue_style( 'wc_composite_edit_order_css' );
+
+	    if ( $hook == 'post-new.php' || $hook == 'post.php' ) {
+		    
+	        if ( 'product' === $post->post_type ) {    
+		
+				wp_enqueue_script('wc-composite-ext-admin', $woocommerce_composite_products->plugin_url() . '/assets/js/wc-composite-ext-admin.js', array(), $woocommerce_composite_products->version, true);
+				
+			}
+			
+		}
+		
 	}
 
 	/**
@@ -1020,32 +1019,6 @@ class WC_CP_Admin {
 		<div id="bto_product_data" class="bto_panel panel woocommerce_options_panel wc-metaboxes-wrapper">
 
 			<div class="options_group bundle_group bto_clearfix">
-				<h3><?php _e( 'Layout Options:', 'woocommerce-composite-products' ); ?></h3>
-				<div class="bto_layouts bto_clearfix form-field">
-					<label class="bundle_group_label">
-						<?php _e( 'Composite Layout', 'woocommerce-composite-products' ); ?>
-						<img class="help_tip" data-tip="<?php echo __( 'Choose the <strong>Stacked</strong> or <strong>Progressive</strong> layout if the Components added below contain a few options with a minimal amount of information. Recommended when using the <strong>Dropdowns</strong> Options Style. Select the <strong>Stepped</strong> or <strong>Componentized</strong> layout if the Components added below contain multiple options with detailed descriptions and images. Recommended when using the <strong>Product Thumbnails</strong> Options Style.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-					</label>
-					<ul class="bto_clearfix bto_layouts_list">
-						<?php
-						$layouts         = $woocommerce_composite_products->api->get_layout_options();
-						$selected_layout = $woocommerce_composite_products->api->get_selected_layout_option( get_post_meta( $post->ID, '_bto_style', true ) );
-
-						foreach ( $layouts as $layout_id => $layout_description ) {
-
-							$layout_src     = apply_filters( 'woocommerce_composite_product_layout_image_src', $woocommerce_composite_products->plugin_url() . '/assets/images/' . $layout_id . '.png', $post->ID );
-							$layout_tooltip = $woocommerce_composite_products->api->get_layout_tooltip( $layout_id );
-
-							?><li><label class="bto_layout_label">
-								<img src="<?php echo $layout_src; ?>" />
-								<input <?php echo $selected_layout == $layout_id ? 'checked="checked"' : ''; ?> name="bto_style" type="radio" value="<?php echo $layout_id; ?>" />
-								<br/>
-								<span><?php echo $layout_description . ' ' . $layout_tooltip; ?></span>
-							</label></li><?php
-						}
-
-					?></ul>
-				</div>
 				<p class="form-field">
 					<label class="bundle_group_label">
 						<?php _e( 'Options Style', 'woocommerce-composite-products' ); ?>
@@ -1059,11 +1032,15 @@ class WC_CP_Admin {
 						<?php } ?>
 					</select>
 				</p>
+				<p class="form-field">
+					<label class="bundle_group_label">
+						<?php _e( 'Build a SKU?', 'woocommerce-composite-products' ); ?>
+						<img class="help_tip" data-tip="<?php echo __( 'Check this box if would like to build a SKU from the components', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					</label>
+					<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php echo addslashes(checked(get_post_meta($product_id, '_bto_build_sku', true), 'yes', false)); ?> />
+				</p>
 			</div>
-			<?php do_action('woocommerce_composite_products_admin_before_components', $post->ID); ?>
 			<div class="options_group config_group bto_clearfix">
-
-				<h3><?php _e( 'Components:', 'woocommerce-composite-products' ); ?></h3>
 				<p class="toolbar">
 					<a href="#" class="help_tip tips" data-tip="<?php echo __( 'Composite Products consist of building blocks, called <strong>Components</strong>. Each Component offers an assortment of <strong>Component Options</strong> that correspond to existing Simple products, Variable products or Product Bundles.', 'woocommerce-composite-products' ); ?>" >[?]</a>
 					<a href="#" class="close_all"><?php _e( 'Close all', 'woocommerce' ); ?></a>
@@ -1169,7 +1146,11 @@ class WC_CP_Admin {
 						?></div>
 
 						<p class="toolbar borderless">
-							<?php do_action('woocommerce_composite_products_admin_before_add_scenario_button', $post); ?>
+							<input type="file" name="import_scenarios" class="hide" id="importScenarios" onChange="if(confirm('Are you sure you want to upload this import file? This action will replace all existing scenarios')){this.form.submit();}" />
+							
+							<a href="#" onClick="jQuery('#importScenarios').trigger('click'); return false;" class="button-primary"><?php _e('Import Scenarios', 'woocommerce-composite-products-extension'); ?></a>
+							
+							<a href="<?php echo add_query_arg(array('action' => 'export_scenarios', 'product_id' => $post->ID, '_wpnonce' => wp_create_nonce('export_scenarios')), admin_url('admin-post.php')); ?>" class="button-primary"><?php _e('Export Scenarios', 'woocommerce-composite-products-extension'); ?></a>
 							<button type="button" class="button button-primary add_bto_scenario"><?php _e( 'Add Scenario', 'woocommerce-composite-products' ); ?></button>
 						</p><?php
 
@@ -1195,14 +1176,6 @@ class WC_CP_Admin {
 	 * @return array
 	 */
 	function add_composite_type_options( $options ) {
-
-		$options[ 'per_product_shipping_bto' ] = array(
-			'id'            => '_per_product_shipping_bto',
-			'wrapper_class' => 'show_if_composite',
-			'label'         => __( 'Non-Bundled Shipping', 'woocommerce-composite-products' ),
-			'description'   => __( 'If your Composite product consists of items that are assembled or packaged together, leave this box un-checked and define the shipping properties of the Composite below. If, however, the contents of the Composite are shipped individually, checking this option will allow them to retain their individual shipping properties. <strong>Non-Bundled Shipping</strong> should also be checked if all composited items are virtual.', 'woocommerce-composite-products' ),
-			'default'       => 'no'
-		);
 
 		$options[ 'per_product_pricing_bto' ] = array(
 			'id'            => '_per_product_pricing_bto',
@@ -1580,6 +1553,47 @@ class WC_CP_Admin {
 
 				// Process custom data - add custom errors via $woocommerce_composite_products->admin->add_error()
 				$bto_data[ $group_id ] = apply_filters( 'woocommerce_composite_process_component_data', $bto_data[ $group_id ], $post_data, $group_id, $post_id );
+				
+				// Save default preferences
+				if ( isset( $post_data[ 'recommended_id' ] ) && ! empty( $post_data[ 'recommended_id' ] ) ) {
+		
+					if ( in_array( $post_data[ 'recommended_id' ], $component_options ) )
+		
+						$bto_data[ $group_id ][ 'recommended_id' ] = stripslashes( $post_data[ 'recommended_id' ] );
+		
+					else {
+		
+						$bto_data[ 'recommended_id' ] = '';
+		
+						if ( ! empty( $post_data[ 'title' ] ) )
+							$this->add_error( sprintf( __( 'The default option that you selected for \'%s\' is inconsistent with the set of active Component Options. Always double-check your preferences before saving, and always save any changes made to the Component Options before choosing new defaults.', 'woocommerce-composite-products' ), strip_tags( stripslashes( $post_data[ 'title' ] ) ) ) );
+					}
+		
+				}
+				
+				if ( isset( $post_data[ 'option_style' ] ) ) {
+					$bto_data[ $group_id ][ 'option_style' ] = stripslashes( $post_data[ 'option_style' ] );
+				} else {
+					$bto_data[ $group_id ][ 'option_style' ] = -1;
+				}
+				
+				if ( isset( $post_data[ 'affect_sku' ] ) ) {
+					$bto_data[ $group_id ][ 'affect_sku' ] = 'yes';
+				} else {
+					$bto_data[ $group_id ][ 'affect_sku' ] = 'no';
+				}
+				
+				if ( isset( $post_data[ 'affect_sku_order' ] ) ) {
+					$bto_data[ $group_id ][ 'affect_sku_order' ] = $post_data[ 'affect_sku_order' ];
+				} else {
+					$bto_data[ $group_id ][ 'affect_sku_order' ] = '';
+				}
+				
+				if( isset ($post_data['sku_options']) ) {
+					$$bto_data[ $group_id ][ 'sku_options' ] = $post_data['sku_options'];
+				} else {
+					$bto_data[ $group_id ][ 'sku_options' ] = array();
+				}	
 
 				// Invalidate query cache
 				if ( class_exists( 'WC_Cache_Helper' ) ) {
@@ -1863,6 +1877,12 @@ class WC_CP_Admin {
 			// Save config
 			update_post_meta( $post_id, '_bto_data', $ordered_bto_data );
 			update_post_meta( $post_id, '_bto_scenario_data', $ordered_bto_scenario_data );
+			
+			if(isset($_REQUEST['bto_extension']) && is_array($_REQUEST['bto_extension'])) {
+				foreach($_REQUEST['bto_extension'] as $key => $val) {
+					update_post_meta($post_id, '_' . $key, $val);
+				}
+			}
 
 			// Initialize and save price meta
 			$composite = WC_CP_Core_Compatibility::wc_get_product( $post_id );
@@ -1940,13 +1960,23 @@ class WC_CP_Admin {
 		
 		return apply_filters('woocommerce_composite_extension_admin_component_tabs', array(
 			'basic' => array(
-				'title' => 'Basic Configuration',
+				'title' => 'Basic',
 				'action' => 'woocommerce_composite_component_admin_config_html',
 				'classes' => array(),
 			),
 			'advanced' => array(
-				'title' => 'Advanced Configuration',
+				'title' => 'Advanced',
 				'action' => 'woocommerce_composite_component_admin_advanced_html',
+				'classes' => array(),
+			),
+			array(
+				'title' => 'SKU',
+				'action' => 'woocommerce_composite_component_admin_sku_html',
+				'classes' => array(),
+			),
+			array(
+				'title' => 'Price',
+				'action' => 'woocommerce_composite_component_admin_price_html',
 				'classes' => array(),
 			)
 		));
@@ -2204,9 +2234,13 @@ class WC_CP_Admin {
 				'title' => 'Dropdowns',
 				'description' => 'Component Options are listed in dropdown menus without any pagination. Use this setting if your Components include just a few product options. Also recommended if you want to keep the layout as compact as possible.',
 			),
-			'thumbnails' => array(
-				'title' => 'Product Thumbnails',
-				'description' => 'Component Options are presented as product thumbnails, paginated and arranged in columns similar to the main shop loop. Use this setting if your Components include many product options. Also recommended if you want to display sorting and filtering controls.',
+			'radios' => array(
+				'title' => 'Radio Buttons',
+				'description' => 'Component Options are presented as radio buttons, all in a vertical list. Radio buttons are disabled when outside of scenarios.',
+			),
+			'checkboxes' => array(
+				'title' => 'Checkboxes',
+				'description' => 'Component Options are presented as checkboxes, where many products can be selected, all in a vertical list. Checkboxes are disabled when outside of scenarios.',
 			)
 		);
 		
@@ -2245,53 +2279,9 @@ class WC_CP_Admin {
 		
 	}
 	
-	public function admin_composite_ext_scripts( $hook ) {
-			
-		global $post, $woocommerce_composite_products;
-
-	    if ( $hook == 'post-new.php' || $hook == 'post.php' ) {
-		    
-	        if ( 'product' === $post->post_type ) {    
-		
-				wp_enqueue_script('wc-composite-ext-admin', $woocommerce_composite_products->plugin_url() . '/assets/js/wc-composite-ext-admin.js', array(), $woocommerce_composite_products->version, true);
-				
-			}
-			
-		}
-		
-	}
-	
-	public function add_admin_before_components($product_id) {
-		
-		?>
-		
-		<div class="options_group bundle_group bto_clearfix">
-	
-			<h3><?php _e( 'Build SKU:', 'woocommerce-composite-products' ); ?></h3>
-			
-			<p class="form-field">
-				
-				<label class="bundle_group_label">
-					
-					<?php _e( 'Build a SKU?', 'woocommerce-composite-products' ); ?>
-					
-					<img class="help_tip" data-tip="<?php echo __( 'Check this box if would like to build a SKU from the components', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-					
-				</label>
-				
-				<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php echo addslashes(checked(get_post_meta($product_id, '_bto_build_sku', true), 'yes', false)); ?> />
-				
-			</p>
-			
-		</div>
-		
-		<?php
-		
-	}
-	
 	public function component_config_recommended_option($id, $data, $product_id) {
 		
-		global $woocommerce_composite_products, $woocommerce_composite_products;
+		global $woocommerce_composite_products;
 		
 		?>
 		
@@ -2599,106 +2589,98 @@ class WC_CP_Admin {
 		
 	}
 	
-	public function admin_add_selection_modes($selection_modes) {
-		
-		$selection_modes['radios'] = array(
-			'title' => 'Radio Buttons',
-			'description' => 'Component Options are presented as radio buttons, all in a vertical list. Radio buttons are disabled when outside of scenarios.',
-		);
-		
-		
-		$selection_modes['checkboxes'] =array(
-			'title' => 'Checkboxes',
-			'description' => 'Component Options are presented as checkboxes, where many products can be selected, all in a vertical list. Checkboxes are disabled when outside of scenarios.',
-		);
-		
-		return $selection_modes;
-		
-	}
-	
-	public function save_product($product_id) {
-		
-		if(isset($_REQUEST['bto_extension']) && is_array($_REQUEST['bto_extension'])) {
-			foreach($_REQUEST['bto_extension'] as $key => $val) {
-				update_post_meta($product_id, '_' . $key, $val);
-			}
-		}
-		
-	}
-	
-	public function save_component_data($bto_data, $post_data, $group_id, $post_id) {
+	public function component_price_options($id, $data, $product_id) {
 		
 		global $woocommerce_composite_products;
 		
-		// Run query to get component option ids
-		$component_options = $woocommerce_composite_products->api->get_component_options( $bto_data );
-		
-		// Save default preferences
-		if ( isset( $post_data[ 'recommended_id' ] ) && ! empty( $post_data[ 'recommended_id' ] ) ) {
-
-			if ( in_array( $post_data[ 'recommended_id' ], $component_options ) )
-
-				$bto_data[ 'recommended_id' ] = stripslashes( $post_data[ 'recommended_id' ] );
-
-			else {
-
-				$bto_data[ 'recommended_id' ] = '';
-
-				if ( ! empty( $post_data[ 'title' ] ) )
-					$woocommerce_composite_products->admin->add_error( sprintf( __( 'The default option that you selected for \'%s\' is inconsistent with the set of active Component Options. Always double-check your preferences before saving, and always save any changes made to the Component Options before choosing new defaults.', 'woocommerce-composite-products' ), strip_tags( stripslashes( $post_data[ 'title' ] ) ) ) );
-			}
-
-		}
-		
-		if ( isset( $post_data[ 'option_style' ] ) ) {
-			$bto_data[ 'option_style' ] = stripslashes( $post_data[ 'option_style' ] );
-		} else {
-			$bto_data[ 'option_style' ] = -1;
-		}
-		
-		if ( isset( $post_data[ 'affect_sku' ] ) ) {
-			$bto_data[ 'affect_sku' ] = 'yes';
-		} else {
-			$bto_data[ 'affect_sku' ] = 'no';
-		}
-		
-		if ( isset( $post_data[ 'affect_sku_order' ] ) ) {
-			$bto_data[ 'affect_sku_order' ] = $post_data[ 'affect_sku_order' ];
-		} else {
-			$bto_data[ 'affect_sku_order' ] = '';
-		}
-		
-		if( isset ($post_data['sku_options']) ) {
-			$bto_data[ 'sku_options' ] = $post_data['sku_options'];
-		} else {
-			$bto_data[ 'sku_options' ] = array();
-		}	
-		
-		return $bto_data;
-		
-	}
-
-	public function admin_add_component_tabs($tabs) {
-		
-		$tabs['skus' ] = array (
-			'title' => 'SKU Configuration',
-			'action' => 'woocommerce_composite_component_admin_sku_html',
-			'classes' => array(),
-		);
-		
-		return $tabs;
-		
-	}
-	
-	public function import_export_scenarios($post) {
-		
 		?>
 		
-		<input type="file" name="import_scenarios" class="hide" id="importScenarios" onChange="if(confirm('Are you sure you want to upload this import file? This action will replace all existing scenarios')){this.form.submit();}" />
+		<div class="group_affected_by_price group_affect_price_options">
+	
+			<div class="form-field">
 		
-		<a href="#" onClick="jQuery('#importScenarios').trigger('click'); return false;" class="button-primary"><?php _e('Import Scenarios', 'woocommerce-composite-products-extension'); ?></a>
-		
-		<a href="<?php echo add_query_arg(array('action' => 'export_scenarios', 'product_id' => $post->ID, '_wpnonce' => wp_create_nonce('export_scenarios')), admin_url('admin-post.php')); ?>" class="button-primary"><?php _e('Export Scenarios', 'woocommerce-composite-products-extension'); ?></a>
+				<label class="bundle_group_label">
+					
+					<?php _e( 'Price Options', 'woocommerce-composite-products' ); ?>
+					
+					<img class="help_tip" data-tip="<?php echo __( 'Enter the Price to per component option.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					
+				</label>
+				
+				<?php
+			
+				// Run query to get component option ids
+				$item_ids = $woocommerce_composite_products->api->get_component_options( $data );
+			
+				if ( ! empty( $item_ids ) ) : ?>
+				
+					<table>
+						
+						<thead>
+							
+							<tr>
+								
+								<td><strong><?php _e('Component Option', 'woocommerce-composite-products'); ?></strong></td>
+								
+								<td><strong><?php _e('Price (£)', 'woocommerce-composite-products'); ?></strong></td>
+								
+							</tr>
+							
+						</thead>
+						
+						<tbody>
+							
+							<?php if(isset($data['optional']) && $data['optional'] == 'yes') : ?>
+							
+								<tr>
+										
+									<td><?php _e('None', 'woocommerce-companies'); ?></td>
+									
+									<td>
+										
+										<input type="text" name="bto_data[<?php echo $id; ?>][sku_options][-1]" value="<?php echo isset($data[ 'sku_options' ][ '-1' ]) ? $data[ 'sku_options' ][ '-1' ] : get_post_meta($item_id, '_sku', true); ?>" />
+										
+									</td>
+									
+								</tr>
+							
+							<?php endif; ?>
+							
+							<?php foreach ( $item_ids as $item_id ) : $product_title = $woocommerce_composite_products->api->get_product_title( $item_id ); ?>
+							
+								<tr>
+									
+									<td>
+										
+										<?php echo $product_title; ?>
+										
+									</td>
+									
+									<td>
+										
+										<?php $item = wc_get_product($item_id); ?>
+										
+										<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset($data[ 'price_options' ][ $item_id ]) ? $data[ 'price_options' ][ $item_id ] : $item->get_price(); ?>" />
+										
+									</td>
+									
+								</tr>
+								
+							<?php endforeach; ?>
+							
+						</tbody>
+						
+					</table>
+					
+				<?php else : ?>
+					
+					<div class="prompt"><em><?php _e( 'To set price options, you must first add some products in the Component Options field and then save your configuration&hellip;', 'woocommerce-composite-products' ); ?></em></div>
+					
+				<?php endif; ?>
+				
+			</div>
+			
+		</div>
 		
 		<?php
 		

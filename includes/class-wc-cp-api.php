@@ -1521,44 +1521,6 @@ class WC_CP_API {
 	}
 
 	/**
-	 * Get composite layout options.
-	 * @return array
-	 */
-	public function get_layout_options() {
-
-		$sanitized_custom_layouts = array();
-
-		$base_layouts = array(
-			'single'              => __( 'Stacked', 'woocommerce-composite-products' ),
-			'progressive'         => __( 'Progressive', 'woocommerce-composite-products' ),
-			'paged'               => __( 'Stepped', 'woocommerce-composite-products' ),
-		);
-
-		$custom_layouts = array(
-			'paged-componentized' => __( 'Componentized', 'woocommerce-composite-products' ),
-		);
-
-		$custom_layouts = apply_filters( 'woocommerce_composite_product_layout_variations', $custom_layouts );
-
-		foreach ( $custom_layouts as $layout_id => $layout_description ) {
-
-			$sanitized_layout_id = esc_attr( sanitize_title( $layout_id ) );
-
-			if ( array_key_exists( $sanitized_layout_id, $base_layouts ) ) {
-				continue;
-			}
-
-			$sanitized_layout_id_parts = explode( '-', $sanitized_layout_id, 2 );
-
-			if ( ! empty( $sanitized_layout_id_parts[0] ) && array_key_exists( $sanitized_layout_id_parts[0], $base_layouts ) ) {
-				$sanitized_custom_layouts[ $sanitized_layout_id ] = $layout_description;
-			}
-		}
-
-		return array_merge( $base_layouts, $sanitized_custom_layouts );
-	}
-
-	/**
 	 * Get composite layout tooltips.
 	 * @param  string
 	 * @return string

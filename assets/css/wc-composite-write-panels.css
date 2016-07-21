@@ -17,14 +17,6 @@ table.wp-list-table span.product-type.bto {
 	background-position-x: 0px;
 }
 
-#woocommerce-product-data ul.product_data_tabs li.composite_product_options a:before {
-	content: '\e002';
-}
-
-#woocommerce-product-data ul.product_data_tabs li.composite_scenarios a:before {
-	content: '\e018';
-}
-
 .bto_group_data label, .bto_scenario_data label {
 	width: 185px;
 	margin: 0 0 0 -195px;
