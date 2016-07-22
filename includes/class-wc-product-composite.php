@@ -575,70 +575,6 @@ class WC_Product_Composite extends WC_Product {
 	}
 
 	/**
-	 * Composite base layout.
-	 *
-	 * @return string
-	 */
-	public function get_composite_layout_style() {
-
-		global $woocommerce_composite_products;
-
-		if ( ! empty( $this->base_layout ) ) {
-			return $this->base_layout;
-		}
-
-		$composite_layout = $woocommerce_composite_products->api->get_selected_layout_option( $this->composite_layout );
-
-		$layout = explode( '-', $composite_layout, 2 );
-
-		$this->base_layout = $layout[0];
-
-		return $this->base_layout;
-	}
-
-	/**
-	 * Composite base layout variation.
-	 *
-	 * @return string
-	 */
-	public function get_composite_layout_style_variation() {
-
-		global $woocommerce_composite_products;
-
-		if ( ! empty( $this->base_layout_variation ) ) {
-			return $this->base_layout_variation;
-		}
-
-		$composite_layout = $woocommerce_composite_products->api->get_selected_layout_option( $this->composite_layout );
-
-		$layout = explode( '-', $composite_layout, 2 );
-
-		if ( ! empty( $layout[1] ) ) {
-			$this->base_layout_variation = $layout[1];
-		} else {
-			$this->base_layout_variation = 'standard';
-		}
-
-		return $this->base_layout_variation;
-	}
-
-	/**
-	 * Component options selections -- thumbnails or dropdowns.
-	 *
-	 * @return string
-	 */
-	public function get_composite_selections_style() {
-
-		$selections_style = $this->selections_style;
-
-		if ( empty( $selections_style ) ) {
-			$selections_style = 'dropdowns';
-		}
-
-		return $selections_style;
-	}
-
-	/**
 	 * Scenario data arrays used by JS scripts.
 	 *
 	 * @return array
@@ -780,14 +716,8 @@ class WC_Product_Composite extends WC_Product {
 
 			if ( ! $this->is_synced() )
 				$this->sync_composite();
-
-			// Only do paged component options in 'thumbnails' mode
-			if ( $this->get_composite_selections_style() == 'dropdowns' ) {
-				$per_page = false;
-			} else {
-				$thumbnail_columns = apply_filters( 'woocommerce_composite_component_loop_columns', max( apply_filters( 'loop_shop_columns', 4 ) - 1, 1 ), $component_id, $this );
-				$per_page          = apply_filters( 'woocommerce_component_options_per_page', $thumbnail_columns * 2, $component_id, $this );
-			}
+			
+			$per_page = false;
 
 			$defaults = array(
 				'load_page'       => 'selected',
@@ -1107,20 +1037,15 @@ class WC_Product_Composite extends WC_Product {
 	public function get_component_classes( $component_id ) {
 
 		$classes    = array();
-		$layout     = $this->get_composite_layout_style();
 		$components = $this->get_composite_data();
-		$toggled    = $layout === 'paged' ? false : apply_filters( 'woocommerce_composite_component_toggled', $layout === 'progressive' ? true : false, $component_id, $this );
+		$toggled    = apply_filters( 'woocommerce_composite_component_toggled',true, $component_id, $this );
 
 		$classes[]  = 'component';
-		$classes[]  = 'options-style-' . $this->get_composite_selections_style();
+		$classes[]  = 'options-style-progressive';
 
-		if ( $layout === 'paged' ) {
-			$classes[] = 'multistep';
-		} elseif ( $layout === 'progressive' ) {
-			$classes[] = 'multistep';
-			$classes[] = 'progressive';
-			$classes[] = 'autoscrolled';
-		}
+		$classes[] = 'multistep';
+		$classes[] = 'progressive';
+		$classes[] = 'autoscrolled';
 
 		if ( $toggled ) {
 			$classes[] = 'toggled';
@@ -1159,6 +1084,19 @@ class WC_Product_Composite extends WC_Product {
 		}
 
 		return apply_filters( 'woocommerce_composite_component_classes', $classes, $component_id, $this );
+	}
+	
+	/**
+	 * Component options selections -- thumbnails or dropdowns.
+	 *
+	 * @return string
+	 */
+	public function get_composite_selections_style() {
+		$selections_style = $this->selections_style;
+		if ( empty( $selections_style ) ) {
+			$selections_style = 'dropdowns';
+		}
+		return $selections_style;
 	}
 
 	/**

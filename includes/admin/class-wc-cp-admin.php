@@ -941,16 +941,6 @@ class WC_CP_Admin {
 
 		if ( in_array( $screen->id, array( 'shop_order', 'edit-shop_order' ) ) )
 			wp_enqueue_style( 'wc_composite_edit_order_css' );
-
-	    if ( $hook == 'post-new.php' || $hook == 'post.php' ) {
-		    
-	        if ( 'product' === $post->post_type ) {    
-		
-				wp_enqueue_script('wc-composite-ext-admin', $woocommerce_composite_products->plugin_url() . '/assets/js/wc-composite-ext-admin.js', array(), $woocommerce_composite_products->version, true);
-				
-			}
-			
-		}
 		
 	}
 
