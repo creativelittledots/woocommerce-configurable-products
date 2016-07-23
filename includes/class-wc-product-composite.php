@@ -15,9 +15,7 @@ class WC_Product_Composite extends WC_Product {
 	private $composite_data = array();
 
 	public $per_product_pricing;
-	public $per_product_shipping;
-
-	private $composite_layout;
+	
 	private $base_layout;
 	private $base_layout_variation;
 	private $selections_style;
@@ -61,9 +59,7 @@ class WC_Product_Composite extends WC_Product {
 
 		$this->composite_data       = get_post_meta( $this->id, '_bto_data', true );
 		$this->per_product_pricing  = get_post_meta( $this->id, '_per_product_pricing_bto', true );
-		$this->per_product_shipping = get_post_meta( $this->id, '_per_product_shipping_bto', true );
 
-		$this->composite_layout     = get_post_meta( $this->id, '_bto_style', true );
 		$this->selections_style     = get_post_meta( $this->id, '_bto_selection_mode', true );
 
 		$this->contains_nyp         = false;
@@ -394,10 +390,6 @@ class WC_Product_Composite extends WC_Product {
 		if ( ! $this->is_synced() )
 			$this->sync_composite();
 
-		if ( apply_filters( 'woocommerce_composite_force_old_style_price_html', false, $this ) || apply_filters( 'woocommerce_composite_show_free_string', false, $this ) ) {
-			return $this->get_old_style_price_html();
-		}
-
 		if ( $this->is_priced_per_product() ) {
 
 			if ( $this->hide_price_html() ) {
@@ -413,20 +405,24 @@ class WC_Product_Composite extends WC_Product {
 
 				// Main price
 				$prices = array( $this->min_composite_price, $this->max_composite_price );
+				
+				$args = array(
+					'price_format' => '%1$s<span rv-text="product:price">%2$s</span>'
+				);
 
 				if ( $this->contains_nyp || $this->has_multiple_quantities )
-					$price = wc_price( $prices[0] );
+					$price = wc_price( $prices[0], $args );
 				else
-					$price = $prices[0] !== $prices[1] ? sprintf( _x( '%1$s&ndash;%2$s', 'Price range: from-to', 'woocommerce' ), wc_price( $prices[0] ), wc_price( $prices[1] ) ) : wc_price( $prices[0] );
+					$price = $prices[0] !== $prices[1] ? sprintf( _x( '%1$s&ndash;%2$s', 'Price range: from-to', 'woocommerce' ), wc_price( $prices[0], $args ), wc_price( $prices[1], $args ) ) : wc_price( $prices[0], $args );
 
 				// Sale
 				$prices = array( $this->min_composite_regular_price, $this->max_composite_regular_price );
 
 				if ( $this->contains_nyp || $this->has_multiple_quantities ) {
-					$saleprice = wc_price( $prices[0] );
+					$saleprice = wc_price( $prices[0], $args );
 				} else {
 					sort( $prices );
-					$saleprice = $prices[0] !== $prices[1] ? sprintf( _x( '%1$s&ndash;%2$s', 'Price range: from-to', 'woocommerce' ), wc_price( $prices[0] ), wc_price( $prices[1] ) ) : wc_price( $prices[0] );
+					$saleprice = $prices[0] !== $prices[1] ? sprintf( _x( '%1$s&ndash;%2$s', 'Price range: from-to', 'woocommerce' ), wc_price( $prices[0], $args ), wc_price( $prices[1], $args ) ) : wc_price( $prices[0], $args );
 				}
 
 				if ( $price !== $saleprice ) {
@@ -445,114 +441,17 @@ class WC_Product_Composite extends WC_Product {
 		}
 
 	}
-
+	
 	/**
-	 * 'From:' style price html string.
-	 *
-	 * @param  double|string $price
-	 * @return string
-	 */
-	private function get_old_style_price_html( $price = '' ) {
-
-		if ( $this->is_priced_per_product() ) {
-
-			if ( $this->hide_price_html() )
-				return '';
-
-			// Get the price
-			if ( $this->min_composite_price > 0 ) :
-				if ( $this->min_composite_regular_price !== $this->min_composite_price ) :
-
-					if ( ! $this->min_composite_price || $this->min_composite_price !== $this->max_composite_price || $this->contains_nyp )
-						$price .= $this->get_price_html_from_text();
-
-					$price .= $this->get_price_html_from_to( $this->min_composite_regular_price, $this->min_composite_price ) . $this->get_price_suffix();
-
-					$price = apply_filters( 'woocommerce_composite_sale_price_html', $price, $this );
-
-				else :
-
-					if ( ! $this->min_composite_price || $this->min_composite_price !== $this->max_composite_price || $this->contains_nyp )
-						$price .= $this->get_price_html_from_text();
-
-					$price .= wc_price( $this->min_composite_price ) . $this->get_price_suffix();
-
-					$price = apply_filters( 'woocommerce_composite_price_html', $price, $this );
-
-				endif;
-			elseif ( $this->min_composite_price === '' ) :
-
-				$price = apply_filters( 'woocommerce_composite_empty_price_html', '', $this );
-
-			elseif ( $this->min_composite_price == 0 ) :
-
-				if ( $this->is_on_sale() && isset( $this->min_composite_regular_price ) && $this->min_composite_regular_price !== $this->min_composite_price ) :
-
-					if ( ! $this->min_composite_price || $this->min_composite_price !== $this->max_composite_price || $this->contains_nyp )
-						$price .= $this->get_price_html_from_text();
-
-					$price .= $this->get_price_html_from_to( $this->min_composite_regular_price, __( 'Free!', 'woocommerce' ) );
-
-					$price = apply_filters( 'woocommerce_composite_free_sale_price_html', $price, $this );
-
-				else :
-
-					if ( !$this->min_composite_price || $this->min_composite_price !== $this->max_composite_price || $this->contains_nyp )
-						$price .= $this->get_price_html_from_text();
-
-					$price .= __( 'Free!', 'woocommerce' );
-
-					$price = apply_filters( 'woocommerce_composite_free_price_html', $price, $this );
-
-				endif;
-
-			endif;
-
-			return apply_filters( 'woocommerce_get_price_html', $price, $this );
-
-		} else {
-
-			return parent::get_price_html();
-		}
-
-	}
-
-	/**
-	 * Prices incl. or excl. tax are calculated based on the bundled products prices, so get_price_suffix() must be overridden to return the correct field in per-product pricing mode.
-	 *
-	 * @return 	string    modified price html suffix
-	 */
-	public function get_price_suffix($price = '', $qty = 1) {
-
-		global $woocommerce_composite_products;
-
-		if ( $this->is_priced_per_product() ) {
-
-			$price_display_suffix  = get_option( 'woocommerce_price_display_suffix' );
-
-			if ( $price_display_suffix ) {
-				$price_display_suffix = ' <small class="woocommerce-price-suffix">' . $price_display_suffix . '</small>';
-
-				$find = array(
-					'{price_including_tax}',
-					'{price_excluding_tax}'
-				);
-
-				$replace = array(
-					wc_price( $this->min_composite_price_incl_tax ),
-					wc_price( $this->min_composite_price_excl_tax ),
-				);
-
-				$price_display_suffix = str_replace( $find, $replace, $price_display_suffix );
-			}
-
-			return apply_filters( 'woocommerce_get_price_suffix', $price_display_suffix, $this );
-
-		} else {
-
-			return parent::get_price_suffix();
-		}
-	}
+     * Functions for getting parts of a price, in html, used by get_price_html.
+     *
+     * @return string
+     */
+    public function get_price_html_from_text() {
+	    
+        return '<span class="from" rv-show="product:errors">' . _x( 'From:', 'min_price', 'woocommerce' ) . ' </span>';
+        
+    }
 
 	/**
 	 * Component configuration array passed through 'woocommerce_composite_component_data' filter.
@@ -568,10 +467,34 @@ class WC_Product_Composite extends WC_Product {
 		$composite_data = array();
 
 		foreach ( $this->composite_data as $component_id => $component_data ) {
-			$composite_data[ $component_id ] = apply_filters( 'woocommerce_composite_component_data', $component_data, $component_id, $this );
+			
+			$options = array();
+			
+			foreach($component_data['assigned_ids'] as $id) {
+				
+				if( $product = wc_get_product($id) ) {
+				
+					$options[] = array(
+						'title' => $product->get_title(),
+						'price' => (float) $product->get_price()
+					);
+					
+				}
+				
+			}
+			
+			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
+				'id' => $component_data['component_id'],
+				'style' => ! empty( $component_data['option_style'] ) ? $component_data['option_style'] : $this->selections_style,
+				'title' => $component_data['title'],
+				'description' => $component_data['description'],
+				'optional' => $component_data['optional'] === 'yes' ? true : false,
+				'options' => $options
+			], $component_id, $this );
+			
 		}
 
-		return $composite_data;
+		return array_values($composite_data);
 	}
 
 	/**
@@ -753,142 +676,6 @@ class WC_Product_Composite extends WC_Product {
 	}
 
 	/**
-	 * Get the default method to order the options of a component.
-	 *
-	 * @param  int    $component_id
-	 * @return string
-	 */
-	public function get_component_default_ordering_option( $component_id ) {
-
-		$default_orderby = apply_filters( 'woocommerce_composite_component_default_orderby', 'default', $component_id, $this );
-
-		return $default_orderby;
-	}
-
-	/**
-	 * Get component sorting options, if enabled.
-	 *
-	 * @param  int    $component_id
-	 * @return array
-	 */
-	public function get_component_ordering_options( $component_id ) {
-
-		$component_data = $this->get_component_data( $component_id );
-
-		if ( isset( $component_data[ 'show_orderby' ] ) && $component_data[ 'show_orderby' ] == 'yes' ) {
-
-			$show_default_orderby = 'default' === apply_filters( 'woocommerce_composite_component_default_orderby', 'default', $component_id, $this );
-
-			$component_orderby_options = apply_filters( 'woocommerce_composite_component_orderby', array(
-				'default'    => __( 'Default sorting', 'woocommerce' ),
-				'popularity' => __( 'Sort by popularity', 'woocommerce' ),
-				'rating'     => __( 'Sort by average rating', 'woocommerce' ),
-				'date'       => __( 'Sort by newness', 'woocommerce' ),
-				'price'      => __( 'Sort by price: low to high', 'woocommerce' ),
-				'price-desc' => __( 'Sort by price: high to low', 'woocommerce' )
-			), $component_id, $this );
-
-			if ( ! $show_default_orderby ) {
-				unset( $component_orderby_options[ 'default' ] );
-			}
-
-			if ( get_option( 'woocommerce_enable_review_rating' ) === 'no' ) {
-				unset( $component_orderby_options[ 'rating' ] );
-			}
-
-			if ( ! $this->is_priced_per_product() ) {
-				unset( $component_orderby_options[ 'price' ] );
-				unset( $component_orderby_options[ 'price-desc' ] );
-			}
-
-			return $component_orderby_options;
-		}
-
-		return false;
-	}
-
-	/**
-	 * Get component filtering options, if enabled.
-	 *
-	 * @param  int    $component_id
-	 * @return array
-	 */
-	public function get_component_filtering_options( $component_id ) {
-
-		global $wc_product_attributes;
-
-		$component_data = $this->get_component_data( $component_id );
-
-		if ( isset( $component_data[ 'show_filters' ] ) && $component_data[ 'show_filters' ] == 'yes' ) {
-
-			$active_filters = array();
-
-			if ( ! empty( $component_data[ 'attribute_filters' ] ) ) {
-
-				foreach ( $wc_product_attributes as $attribute_taxonomy_name => $attribute_data ) {
-
-					if ( in_array( $attribute_data->attribute_id, $component_data[ 'attribute_filters' ] ) && taxonomy_exists( $attribute_taxonomy_name ) ) {
-
-						$orderby = $attribute_data->attribute_orderby;
-
-						switch ( $orderby ) {
-							case 'name' :
-								$args = array( 'orderby' => 'name', 'hide_empty' => false, 'menu_order' => false );
-							break;
-							case 'id' :
-								$args = array( 'orderby' => 'id', 'order' => 'ASC', 'menu_order' => false, 'hide_empty' => false );
-							break;
-							case 'menu_order' :
-								$args = array( 'menu_order' => 'ASC', 'hide_empty' => false );
-							break;
-						}
-
-						$taxonomy_terms = get_terms( $attribute_taxonomy_name, $args );
-
-						if ( $taxonomy_terms ) {
-
-							switch ( $orderby ) {
-								case 'name_num' :
-									usort( $taxonomy_terms, '_wc_get_product_terms_name_num_usort_callback' );
-								break;
-								case 'parent' :
-									usort( $taxonomy_terms, '_wc_get_product_terms_parent_usort_callback' );
-								break;
-							}
-
-							// Add to array
-							$filter_options = array();
-
-							foreach ( $taxonomy_terms as $term ) {
-								$filter_options[ $term->term_id ] = $term->name;
-							}
-
-							// Default filter format
-							$filter_data = array(
-								'filter_type'    => 'attribute_filter',
-								'filter_id'      => $attribute_taxonomy_name,
-								'filter_name'    => $attribute_data->attribute_label,
-								'filter_options' => $filter_options,
-							);
-
-							$active_filters[] = $filter_data;
-						}
-					}
-				}
-			}
-
-			$component_filtering_options = apply_filters( 'woocommerce_composite_component_filters', $active_filters, $component_id, $this );
-
-			if ( ! empty( $component_filtering_options ) ) {
-
-				return $component_filtering_options;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Get the query object used to retrieve the component options of a component.
 	 * Should be called after @see get_current_component_options() has been used to retrieve / sort / filter a set of component options.
 	 *
@@ -918,22 +705,6 @@ class WC_Product_Composite extends WC_Product {
 			$this->sync_composite();
 
 		return $this->component_options[ $component_id ];
-	}
-
-	/**
-	 * True if a component has only one option and is not optional.
-	 *
-	 * @param  string  $component_id
-	 * @return boolean
-	 */
-	public function is_component_static( $component_id ) {
-
-		$component_data = $this->get_component_data( $component_id );
-
-		$is_optional = $component_data[ 'optional' ] === 'yes';
-		$is_static   = count( $this->get_component_options( $component_id ) ) == 1 && ! $is_optional;
-
-		return $is_static;
 	}
 
 	/**
@@ -992,99 +763,6 @@ class WC_Product_Composite extends WC_Product {
 
 		return apply_filters( 'woocommerce_composite_component_data', $this->composite_data[ $component_id ], $component_id, $this );
 	}
-
-	/**
-	 * Get component thumbnail.
-	 *
-	 * @param  string $component_id
-	 * @return array
-	 */
-	public function get_component_image( $component_id ) {
-
-		global $woocommerce_composite_products;
-
-		$component_data = $this->get_component_data( $component_id );
-
-		if ( ! $component_data ) {
-			return '';
-		}
-
-		$image_src = '';
-
-		if ( ! empty( $component_data[ 'thumbnail_id' ] ) ) {
-
-			$image_src_data = wp_get_attachment_image_src( $component_data[ 'thumbnail_id' ], apply_filters( 'woocommerce_composite_component_image_size', 'shop_catalog' )  );
-			$image_src      = $image_src_data ? current( $image_src_data ) : false;
-		}
-
-		if ( ! $image_src ) {
-			$image_src = $woocommerce_composite_products->plugin_url() . '/assets/images/placeholder.png';
-		}
-
-		$image = sprintf( '<img class="summary_element_content" alt="%s" src="%s"/>', __( 'Component image', 'woocommerce-composite-products' ), $image_src );
-
-		// Add class="norefresh" to prevent summary image updates and keep the original image static.
-		// Return '' to hide all images from the summary section.
-		return apply_filters( 'woocommerce_composite_component_image', $image, $image_src, $component_id, $this );
-	}
-
-	/**
-	 * Create an array of classes to use in the component layout templates.
-	 *
-	 * @param  string $component_id
-	 * @return array
-	 */
-	public function get_component_classes( $component_id ) {
-
-		$classes    = array();
-		$components = $this->get_composite_data();
-		$toggled    = apply_filters( 'woocommerce_composite_component_toggled',true, $component_id, $this );
-
-		$classes[]  = 'component';
-		$classes[]  = 'options-style-progressive';
-
-		$classes[] = 'multistep';
-		$classes[] = 'progressive';
-		$classes[] = 'autoscrolled';
-
-		if ( $toggled ) {
-			$classes[] = 'toggled';
-		}
-
-		if ( array_search( $component_id, array_keys( $components ) ) === 0 ) {
-			$classes[] = 'active';
-			$classes[] = 'first';
-
-			if ( $toggled ) {
-				$classes[] = 'open';
-			}
-		} else {
-
-			if ( $layout === 'progressive' ) {
-				$classes[] = 'blocked';
-			}
-
-			if ( $toggled ) {
-				$classes[] = 'closed';
-			}
-		}
-
-		if ( array_search( $component_id, array_keys( $components ) ) === count( $components ) - 1 ) {
-			$classes[] = 'last';
-		}
-
-		if ( $this->is_component_static( $component_id ) ) {
-			$classes[] = 'static';
-		}
-
-		$hide_product_thumbnail = isset( $components[ $component_id ][ 'hide_product_thumbnail' ] ) ? $components[ $component_id ][ 'hide_product_thumbnail' ] : 'no';
-
-		if ( $hide_product_thumbnail === 'yes' ) {
-			$classes[] = 'selection_thumbnail_hidden';
-		}
-
-		return apply_filters( 'woocommerce_composite_component_classes', $classes, $component_id, $this );
-	}
 	
 	/**
 	 * Component options selections -- thumbnails or dropdowns.
@@ -1109,18 +787,6 @@ class WC_Product_Composite extends WC_Product {
 		$is_priced_per_product = $this->per_product_pricing === 'yes' ? true : false;
 
 		return $is_priced_per_product;
-	}
-
-	/**
-	 * True if the composite is priced per product.
-	 *
-	 * @return boolean
-	 */
-	public function is_shipped_per_product() {
-
-		$is_shipped_per_product = $this->per_product_shipping === 'yes' ? true : false;
-
-		return $is_shipped_per_product;
 	}
 
 	/**

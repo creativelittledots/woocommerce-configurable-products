@@ -22,10 +22,10 @@ class WC_CP_Display {
 		/* ------------------------------------------------- */
 
 		// Single product template
-		add_action( 'woocommerce_single_product_summary', array( $this, 'wc_cp_add_to_cart' ) );
+		add_action( 'woocommerce_single_product_summary', array( $this, 'wc_cp_form' ), 30 );
 
 		// Single product add-to-cart button template for composite products
-		add_action( 'woocommerce_composite_add_to_cart_button', array( $this, 'wc_cp_add_to_cart_button' ) );
+		add_action( 'woocommerce_composite_add_to_cart', array( $this, 'wc_cp_add_to_cart' ) );
 
 
 		/* ------------------------------- */
@@ -63,7 +63,7 @@ class WC_CP_Display {
 	 * Add-to-cart button and quantity template for composite products.
 	 * @return void
 	 */
-	public function wc_cp_add_to_cart_button() {
+	public function wc_cp_add_to_cart() {
 
 		global $woocommerce_composite_products;
 
@@ -75,34 +75,35 @@ class WC_CP_Display {
 	 * Add-to-cart template for composite products.
 	 * @return void
 	 */
-	public function wc_cp_add_to_cart() {
+	public function wc_cp_form() {
 
 		global $product, $woocommerce_composite_products;
+		
+		if( ! $product->is_type( 'composite' ) || ! $product->get_composite_data() ) {
+			return;
+		}
 
 		// Enqueue scripts
+		wp_enqueue_script( 'backbone' );
+		wp_enqueue_script( 'rivets' );
+		wp_enqueue_script( 'rivets-formatters' );
+		wp_enqueue_script( 'rivets-backbone' );
+		
+		$product_data = apply_filters( 'wc_cp_product_data', array(
+			'base_price' => 52,
+			'components' => $product->get_composite_data(),
+		), $product );
+		
+		wp_localize_script( 'wc-add-to-cart-composite', 'wc_cp_product_data', $product_data );
+		
 		wp_enqueue_script( 'wc-add-to-cart-composite' );
 
-		// Enqueue styles
 		wp_enqueue_style( 'wc-composite-single-css' );
 
-		// Load NYP scripts
-		if ( function_exists( 'WC_Name_Your_Price' ) ) {
-			WC_Name_Your_Price()->display->nyp_scripts();
-		}
-
-		// Enqueue Bundle styles
-		if ( class_exists( 'WC_Bundles' ) ) {
-			wp_enqueue_style( 'wc-bundle-css' );
-		}
-
-		$components       = $product->get_composite_data();
-
-		if ( ! empty( $components ) ) {
-			wc_get_template( 'single-product/composite.php', array(
-				'components'       => $components,
-				'product'          => $product
-			), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
-		}
+		wc_get_template( 'single-product/composite.php', array(
+			'components'       => $components,
+			'product'          => $product
+		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
 
 	}
 
@@ -133,59 +134,27 @@ class WC_CP_Display {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		$dependencies = array( 'jquery', 'jquery-blockui' );
-
-		if ( class_exists( 'WC_Bundles' ) )
-			$dependencies[] = 'wc-add-to-cart-bundle';
+		$dependencies = array( 'jquery', 'jquery-blockui', 'backbone', 'rivets', 'rivets-backbone', 'rivets-formatters' );
 
 		// Add any custom script dependencies here
 		// Examples: custom product type scripts and component layered filter scripts
 		$dependencies = apply_filters( 'woocommerce_composite_script_dependencies', $dependencies );
+		
+		wp_register_script( 'backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/backbone.min.js', array(), $woocommerce_composite_products->version );
+		
+		wp_register_script( 'rivets', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.bundled.min.js', array(), $woocommerce_composite_products->version );
+		
+		wp_register_script( 'rivets-formatters', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.formatters.min.js', array(), $woocommerce_composite_products->version );
+		
+		wp_register_script( 'rivets-backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.backbone.min.js', array(), $woocommerce_composite_products->version );
 
-		wp_register_script( 'wc-add-to-cart-composite', $woocommerce_composite_products->plugin_url() . '/assets/js/add-to-cart-composite' . $suffix . '.js', $dependencies, $woocommerce_composite_products->version );
+		wp_register_script( 'wc-add-to-cart-composite', $woocommerce_composite_products->plugin_url() . '/assets/js/frontend/add-to-cart-composite' . $suffix . '.js', $dependencies, $woocommerce_composite_products->version );
 
-		wp_register_style( 'wc-composite-single-css', $woocommerce_composite_products->plugin_url() . '/assets/css/wc-composite-single.css', false, $woocommerce_composite_products->version, 'all' );
+		wp_register_style( 'wc-composite-single-css', $woocommerce_composite_products->plugin_url() . '/assets/css/frontend/wc-composite-single.css', false, $woocommerce_composite_products->version, 'all' );
 
-		wp_register_style( 'wc-composite-css', $woocommerce_composite_products->plugin_url() . '/assets/css/wc-composite-styles.css', false, $woocommerce_composite_products->version, 'all' );
-
-		wp_enqueue_style( 'wc-composite-css' );
-
-		$params = apply_filters( 'woocommerce_composite_front_end_params', array(
-			'small_width_threshold'                  => 450,
-			'full_width_threshold'                   => 450,
-			'legacy_width_threshold'                 => 450,
-			'i18n_free'                              => __( 'Free!', 'woocommerce' ),
-			'i18n_total'                             => __( 'Total', 'woocommerce-composite-products' ) . ': ',
-			'i18n_none'                              => __( 'None', 'woocommerce-composite-products' ),
-			'i18n_select_an_option'                  => _x( 'Select an option&hellip;', 'select option dropdown text - optional component', 'woocommerce-composite-products' ),
-			'i18n_previous_step'                     => __( 'Previous &ndash; %s', 'woocommerce-composite-products' ),
-			'i18n_next_step'                         => __( 'Next &ndash; %s', 'woocommerce-composite-products' ),
-			'i18n_final_step'                        => __( 'Review Configuration', 'woocommerce-composite-products' ),
-			'i18n_reset_selection'                   => __( 'Reset selection', 'woocommerce-composite-products' ),
-			'i18n_clear_selection'                   => __( 'Clear selection', 'woocommerce-composite-products' ),
-			'i18n_select_options'                    => sprintf( __( '<p class="price"><span class="composite_error">%s</span></p>', 'woocommerce-composite-products' ), __( 'Please select %s options to update your total and continue&hellip;', 'woocommerce-composite-products' ) ),
-			'i18n_select_options_and_sep'            => sprintf( __( '%1$s and &quot;%2$s&quot;', 'woocommerce-composite-products', 'name of last component pending selections' ), '%s', '%v' ),
-			'i18n_select_options_comma_sep'          => sprintf( __( '%1$s, &quot;%2$s&quot;', 'woocommerce-composite-products', 'name of comma-appended component pending selections' ), '%s', '%v' ),
-			'i18n_unavailable_text'                  => sprintf( __( '<p class="price"><span class="composite_error">%s</span></p>', 'woocommerce-composite-products' ), __( 'Sorry, this product cannot be purchased at the moment.', 'woocommerce-composite-products' ) ),
-			'i18n_select_component_options'          => __( 'Select an option to continue&hellip;', 'woocommerce-composite-products' ),
-			'i18n_summary_empty_component'           => __( 'Configure', 'woocommerce-composite-products' ),
-			'i18n_summary_filled_component'          => __( 'Change', 'woocommerce-composite-products' ),
-			'i18n_summary_static_component'          => __( 'View', 'woocommerce-composite-products' ),
-			'i18n_insufficient_stock'                => __( 'Insufficient stock: %s', 'woocommerce-composite-products' ),
-			'i18n_insufficient_item_stock_comma_sep' => sprintf( __( '%1$s, %2$s', 'woocommerce-composite-products', 'name of comma-appended out-of-stock product' ), '%s', '%v' ),
-			'i18n_insufficient_item_stock'           => sprintf( __( '<span class="out-of-stock-component">%2$s</span> &ndash; <span class="out-of-stock-product">%1$s</span>', 'woocommerce-composite-products' ), '%s', '%v' ),
-			'currency_symbol'                        => get_woocommerce_currency_symbol(),
-			'currency_position'                      => esc_attr( stripslashes( get_option( 'woocommerce_currency_pos' ) ) ),
-			'currency_format_num_decimals'           => absint( get_option( 'woocommerce_price_num_decimals' ) ),
-			'currency_format_decimal_sep'            => esc_attr( stripslashes( get_option( 'woocommerce_price_decimal_sep' ) ) ),
-			'currency_format_thousand_sep'           => esc_attr( stripslashes( get_option( 'woocommerce_price_thousand_sep' ) ) ),
-			'currency_format_trim_zeros'             => false === apply_filters( 'woocommerce_price_trim_zeros', false ) ? 'no' : 'yes',
-			'script_debug'                           => 'no',
-			'show_product_nonce'                     => wp_create_nonce( 'wc_bto_show_product' ),
-			'is_wc_version_gte_2_3'                  => WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'yes' : 'no',
-			'show_quantity_buttons'                  => defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? 'yes' : 'no',
-			'transition_type'                        => 'fade',
-			'block_components'						 => true,
+		$params = apply_filters( 'wc_cp_params', array(
+			'currency'                        		 => get_woocommerce_currency_symbol(),
+			'script_debug'                           => defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? 'yes' : 'no'
 		) );
 		
 		global $post;
@@ -201,7 +170,7 @@ class WC_CP_Display {
 		
 		}
 		
-		wp_localize_script( 'wc-add-to-cart-composite', 'wc_composite_params', $params );
+		wp_localize_script( 'wc-add-to-cart-composite', 'wc_cp_params', $params );
 		
 	}
 

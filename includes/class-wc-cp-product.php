@@ -35,7 +35,7 @@ class WC_CP_Product {
 
 	function __construct( $product_id, $component_id, $parent ) {
 
-		$this->product = WC_CP_Core_Compatibility::wc_get_product( $product_id );
+		$this->product = wc_get_product( $product_id );
 
 		if ( $this->product ) {
 
@@ -44,11 +44,8 @@ class WC_CP_Product {
 			$this->per_product_pricing = $parent->is_priced_per_product();
 			$this->composite_id        = $parent->id;
 
-			$this->add_filters();
-
 			$this->init();
 
-			$this->remove_filters();
 		}
 	}
 
@@ -272,44 +269,6 @@ class WC_CP_Product {
 		}
 
 		return apply_filters( 'woocommerce_composited_product_price_string', $price_string, $product_id, $component_id, $this );
-	}
-
-	/**
-	 * Adds price filters to account for component discounts.
-	 *
-	 * @return void
-	 */
-	public function add_filters() {
-
-		global $woocommerce_composite_products;
-
-		$product = $this->get_product();
-
-		if ( ! $product )
-			return false;
-
-		$args = array(
-			'per_product_pricing' => $this->per_product_pricing,
-			'discount'            => $this->component_data[ 'discount' ],
-			'quantity_min'        => $this->component_data[ 'quantity_min' ],
-			'quantity_max'        => $this->component_data[ 'quantity_max' ],
-			'composite_id'        => $this->composite_id,
-			'component_id'        => $this->component_id
-		);
-
-		$woocommerce_composite_products->api->add_composited_product_filters( $args, $product );
-	}
-
-	/**
-	 * Removes attached price filters.
-	 *
-	 * @return void
-	 */
-	public function remove_filters() {
-
-		global $woocommerce_composite_products;
-
-		$woocommerce_composite_products->api->remove_composited_product_filters();
 	}
 
 	/**

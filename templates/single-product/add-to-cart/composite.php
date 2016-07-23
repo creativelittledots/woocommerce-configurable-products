@@ -1,8 +1,8 @@
 <?php
 /**
- * Composite add-to-cart button template.
+ * Composite quantity input template.
  *
- * @version 2.5.4
+ * @version 2.5.2
  */
 
 // Exit if accessed directly
@@ -12,19 +12,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 global $product;
 
-if ( ! $product->is_sold_individually() )
-	woocommerce_quantity_input( array ( 'min_value' => 1 ) );
-else {
-	?><input class="qty" type="hidden" name="quantity" value="1" /><?php
-}
-
 ?>
-<button type="submit" class="single_add_to_cart_button composite_add_to_cart_button button alt"><?php echo $product->single_add_to_cart_text(); ?></button>
+
+<div class="row">
+
+	<div class="medium-4 columns">
+			
+		<?php
+	
+			if ( ! $product->is_sold_individually() )
+				woocommerce_quantity_input( array ( 'min_value' => 1 ) );
+			else {
+				?><input class="qty" type="hidden" name="quantity" value="1" /><?php
+			}
+			
+		?>
 		
-<div class="composite_sku"></div>
-
-<?php if($product->bto_build_sku == 'yes') : ?>
-
-	<input type="hidden" id="built_sku" name="built_sku" data-sku="<?php echo esc_attr( $product->bto_sku_start ); ?>" value="<?php echo esc_attr( $product->bto_sku_start ); ?>" />
-
-<?php endif; ?>
+	</div>
+	
+	<div class="medium-8 columns">
+		
+		<button type="submit" class="button buy radius small-12 disabled" rv-disabled="product:errors" rv-class-disabled="product:errors" rv-on-click="product.add_to_cart"><?php echo $product->single_add_to_cart_text(); ?></button>
+		
+	</div>
+	
+</div>

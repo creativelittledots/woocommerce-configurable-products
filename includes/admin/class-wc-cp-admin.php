@@ -300,7 +300,7 @@ class WC_CP_Admin {
 								$optional_tip = $component_data[ 'optional' ] === 'yes' ? sprintf( __( '<br/><strong>Pro Tip</strong>: Use the <strong>None</strong> option to control the <strong>Optional</strong> property of <strong>%s</strong> in this Scenario.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ) : '';
 								$select_tip   = sprintf( __( 'Select products and variations from <strong>%1$s</strong>.<br/><strong>Tip</strong>: Choose the <strong>All Products and Variations</strong> option to add all products and variations available under <strong>%1$s</strong> in this Scenario.%2$s', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ), $optional_tip );
 
-								?><select id="bto_scenario_ids_<?php echo $id; ?>_<?php echo $component_id; ?>" name="bto_scenario_data[<?php echo $id; ?>][component_data][<?php echo $component_id; ?>][]" style="width: 75%;" class="<?php echo WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'wc-enhanced-select' : 'chosen_select'; ?> bto_scenario_ids" multiple="multiple" data-placeholder="<?php echo __( 'Select products &amp; variations&hellip;', 'woocommerce-composite-products' ); ?>"><?php
+								?><select id="bto_scenario_ids_<?php echo $id; ?>_<?php echo $component_id; ?>" name="bto_scenario_data[<?php echo $id; ?>][component_data][<?php echo $component_id; ?>][]" style="width: 75%;" class="wc-enhanced-select bto_scenario_ids" multiple="multiple" data-placeholder="<?php echo __( 'Select products &amp; variations&hellip;', 'woocommerce-composite-products' ); ?>"><?php
 
 									foreach ( $scenario_options as $scenario_option_id => $scenario_option_description ) {
 										$option_selected = in_array( $scenario_option_id, $scenario_selections ) ? 'selected="selected"' : '';
@@ -324,7 +324,7 @@ class WC_CP_Admin {
 										$selections_in_scenario[ $product_id_in_scenario ] = __( 'All Products and Variations', 'woocommerce-composite-products' );
 									} else {
 
-										$product_in_scenario = WC_CP_Core_Compatibility::wc_get_product( $product_id_in_scenario );
+										$product_in_scenario = wc_get_product( $product_id_in_scenario );
 
 										if ( ! $product_in_scenario ) {
 											continue;
@@ -347,29 +347,15 @@ class WC_CP_Admin {
 								$optional_tip = $component_data[ 'optional' ] === 'yes' ? sprintf( __( '<br/><strong>Pro Tip</strong>: The <strong>None</strong> option controls the <strong>Optional</strong> property of <strong>%s</strong> in this Scenario.', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ) ) : '';
 								$search_tip   = sprintf( __( 'Search for products and variations from <strong>%1$s</strong>.<br/><strong>Tip</strong>: Choose the <strong>All Products and Variations</strong> option to add all products and variations available under <strong>%1$s</strong> in this Scenario.%2$s', 'woocommerce-composite-products' ), apply_filters( 'woocommerce_composite_component_title', $component_data[ 'title' ], $component_id, $product_id ), $optional_tip );
 
-								if ( WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ) {
-
-									?><input type="hidden" id="bto_scenario_ids_<?php echo $id; ?>_<?php echo $component_id; ?>" name="bto_scenario_data[<?php echo $id; ?>][component_data][<?php echo $component_id; ?>]" class="wc-component-options-search" style="width: 75%;" data-component_optional="<?php echo $component_data[ 'optional' ]; ?>" data-component_id="<?php echo $component_id; ?>" data-placeholder="<?php _e( 'Search for products &amp; variations&hellip;', 'woocommerce-composite-products' ); ?>" data-action="woocommerce_json_search_component_options_in_scenario" data-multiple="true" data-selected="<?php
+								?>
+								
+								<input type="hidden" id="bto_scenario_ids_<?php echo $id; ?>_<?php echo $component_id; ?>" name="bto_scenario_data[<?php echo $id; ?>][component_data][<?php echo $component_id; ?>]" class="wc-component-options-search" style="width: 75%;" data-component_optional="<?php echo $component_data[ 'optional' ]; ?>" data-component_id="<?php echo $component_id; ?>" data-placeholder="<?php _e( 'Search for products &amp; variations&hellip;', 'woocommerce-composite-products' ); ?>" data-action="woocommerce_json_search_component_options_in_scenario" data-multiple="true" data-selected="<?php
 
 										echo esc_attr( json_encode( $selections_in_scenario ) );
 
 									?>" value="<?php echo implode( ',', array_keys( $selections_in_scenario ) ); ?>" />
 									<span class="bto_scenario_search tips" data-tip="<?php echo $search_tip; ?>"></span><?php
-
-								} else {
-
-									?><select id="bto_scenario_ids_<?php echo $id; ?>_<?php echo $component_id; ?>" name="bto_scenario_data[<?php echo $id; ?>][component_data][<?php echo $component_id; ?>][]" class="ajax_chosen_select_component_options" multiple="multiple" data-component_optional="<?php echo $component_data[ 'optional' ]; ?>" data-action="woocommerce_json_search_component_options_in_scenario" data-component_id="<?php echo $component_id; ?>" data-placeholder="<?php echo  __( 'Search for products &amp; variations&hellip;', 'woocommerce-composite-products' ); ?>"><?php
-
-										if ( ! empty( $selections_in_scenario ) ) {
-
-											foreach ( $selections_in_scenario as $selection_id_in_scenario => $selection_in_scenario ) {
-												echo '<option value="' . $selection_id_in_scenario . '" selected="selected">' . $selection_in_scenario . '</option>';
-											}
-										}
-
-									?></select>
-									<span class="bto_scenario_search tips" data-tip="<?php echo $search_tip; ?>"></span><?php
-								}
+								
 							}
 
 						?></div>
@@ -519,7 +505,7 @@ class WC_CP_Admin {
 				<div class="bto_attributes_selector bto_multiselect">
 					<div class="form-field">
 						<label><?php echo __( 'Active Attribute Filters', 'woocommerce-composite-products' ); ?>:</label>
-						<select id="bto_attribute_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][attribute_filters][]" style="width: 75%" class="multiselect <?php echo WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'wc-enhanced-select' : 'chosen_select'; ?>" multiple="multiple" data-placeholder="<?php echo  __( 'Select product attributes&hellip;', 'woocommerce-composite-products' ); ?>"><?php
+						<select id="bto_attribute_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][attribute_filters][]" style="width: 75%" class="multiselect wc-enhanced-select" multiple="multiple" data-placeholder="<?php echo  __( 'Select product attributes&hellip;', 'woocommerce-composite-products' ); ?>"><?php
 
 							foreach ( $attribute_array as $attribute_taxonomy_id => $attribute_taxonomy_label )
 								echo '<option value="' . $attribute_taxonomy_id . '" ' . selected( in_array( $attribute_taxonomy_id, $selected_taxonomies ), true, false ).'>' . $attribute_taxonomy_label . '</option>';
@@ -649,36 +635,22 @@ class WC_CP_Admin {
 
 				}
 
-				if ( WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ) {
+				?>
+				
+				<input type="hidden" id="bto_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_ids]" class="wc-product-search" style="width: 75%;" data-placeholder="<?php _e( 'Search for a product&hellip;', 'woocommerce' ); ?>" data-action="woocommerce_json_search_products" data-multiple="true" data-selected="<?php
 
+					echo esc_attr( json_encode( $product_id_options ) );
 
-					?><input type="hidden" id="bto_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_ids]" class="wc-product-search" style="width: 75%;" data-placeholder="<?php _e( 'Search for a product&hellip;', 'woocommerce' ); ?>" data-action="woocommerce_json_search_products" data-multiple="true" data-selected="<?php
-
-						echo esc_attr( json_encode( $product_id_options ) );
-
-					?>" value="<?php echo implode( ',', array_keys( $product_id_options ) ); ?>" /><?php
-
-				} else {
-
-					?><select id="bto_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_ids][]" class="ajax_chosen_select_products" multiple="multiple" data-placeholder="<?php echo  __( 'Search for a product&hellip;', 'woocommerce' ); ?>"><?php
-
-						if ( ! empty( $product_id_options ) ) {
-
-							foreach( $product_id_options as $product_id => $product_name ) {
-								echo '<option value="' . $product_id . '" selected="selected">' . $product_name . '</option>';
-							}
-						}
-
-					?></select><?php
-
-				}
-			?></div>
+				?>" value="<?php echo implode( ',', array_keys( $product_id_options ) ); ?>" />
+				
+			</div>
+			
 		</div>
 
 		<div class="bto_category_selector bto_query_type_selector bto_multiselect bto_query_type_category_ids">
 			<div class="form-field">
 
-				<select id="bto_category_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_category_ids][]" style="width: 75%" class="multiselect <?php echo WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'wc-enhanced-select' : 'chosen_select'; ?>" multiple="multiple" data-placeholder="<?php echo  __( 'Select product categories&hellip;', 'woocommerce-composite-products' ); ?>"><?php
+				<select id="bto_category_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_category_ids][]" style="width: 75%" class="multiselect wc-enhanced-select" multiple="multiple" data-placeholder="<?php echo  __( 'Select product categories&hellip;', 'woocommerce-composite-products' ); ?>"><?php
 
 					foreach ( $product_categories as $product_category )
 						echo '<option value="' . $product_category->term_id . '" ' . selected( in_array( $product_category->term_id, $selected_categories ), true, false ).'>' . $product_category->name . '</option>';
@@ -745,32 +717,16 @@ class WC_CP_Admin {
 							$product_title = $woocommerce_composite_products->api->get_product_title( $selected_default );
 						}
 
-						if ( WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ) {
+						?>
+						
+						<input type="hidden" id="group_default_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][default_id]" class="wc-component-options-search" style="width: 75%;" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php _e( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>" data-allow_clear="true" data-action="woocommerce_json_search_default_component_option" data-multiple="false" data-selected="<?php
 
-							?><input type="hidden" id="group_default_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][default_id]" class="wc-component-options-search" style="width: 75%;" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php _e( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>" data-allow_clear="true" data-action="woocommerce_json_search_default_component_option" data-multiple="false" data-selected="<?php
+							echo esc_attr( $product_title ? $product_title : __( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ) );
 
-								echo esc_attr( $product_title ? $product_title : __( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ) );
-
-							?>" value="<?php echo $product_title ? $selected_default : ''; ?>" /><?php
-
-						} else {
-
-							?><select id="group_default_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][default_id]" class="ajax_chosen_select_component_options" data-action="woocommerce_json_search_default_component_option" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php echo  __( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>">
-								<option value=""><?php echo __( 'No default option&hellip;', 'woocommerce-composite-products' ); ?></option><?php
-
-								$selected_default = $data[ 'default_id' ];
-
-								if ( $selected_default ) {
-
-									$product_title = $woocommerce_composite_products->api->get_product_title( $selected_default );
-
-									if ( $product_title ) {
-										echo '<option value="' . $selected_default . '" selected="selected">' . $product_title . '</option>';
-									}
-								}
-
-							?></select><?php
-						}
+						?>" value="<?php echo $product_title ? $selected_default : ''; ?>" />
+						
+						<?php
+						
 					}
 
 				} else {
@@ -894,15 +850,11 @@ class WC_CP_Admin {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		if ( WC_CP_Core_Compatibility::is_wc_version_gte_2_2() ) {
-			$writepanel_dependency = 'wc-admin-meta-boxes';
-		} else {
-			$writepanel_dependency = 'woocommerce_admin_meta_boxes';
-		}
+		$writepanel_dependency = 'wc-admin-meta-boxes';
 
-		wp_register_script( 'wc_composite_writepanel', $woocommerce_composite_products->plugin_url() . '/assets/js/wc-composite-write-panels' . $suffix . '.js', array( 'jquery', 'jquery-ui-datepicker', $writepanel_dependency ), $woocommerce_composite_products->version );
-		wp_register_style( 'wc_composite_writepanel_css', $woocommerce_composite_products->plugin_url() . '/assets/css/wc-composite-write-panels.css', array( 'woocommerce_admin_styles' ), $woocommerce_composite_products->version );
-		wp_register_style( 'wc_composite_edit_order_css', $woocommerce_composite_products->plugin_url() . '/assets/css/wc-composite-edit-order.css', array( 'woocommerce_admin_styles' ), $woocommerce_composite_products->version );
+		wp_register_script( 'wc_composite_writepanel', $woocommerce_composite_products->plugin_url() . '/assets/js/admin/wc-composite-write-panels' . $suffix . '.js', array( 'jquery', 'jquery-ui-datepicker', $writepanel_dependency ), $woocommerce_composite_products->version );
+		wp_register_style( 'wc_composite_writepanel_css', $woocommerce_composite_products->plugin_url() . '/assets/css/admin/wc-composite-write-panels.css', array( 'woocommerce_admin_styles' ), $woocommerce_composite_products->version );
+		wp_register_style( 'wc_composite_edit_order_css', $woocommerce_composite_products->plugin_url() . '/assets/css/admin/wc-composite-edit-order.css', array( 'woocommerce_admin_styles' ), $woocommerce_composite_products->version );
 
 		// Get admin screen id
 		$screen = get_current_screen();
@@ -918,7 +870,7 @@ class WC_CP_Admin {
 				'i18n_no_default'           => __( 'No default option&hellip;', 'woocommerce-composite-products' ),
 				'i18n_all'                  => __( 'All Products and Variations', 'woocommerce-composite-products' ),
 				'i18n_none'                 => __( 'None', 'woocommerce-composite-products' ),
-				'is_wc_version_gte_2_3'     => WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ? 'yes' : 'no',
+				'is_wc_version_gte_2_3'     => 'yes',
 				'i18n_matches_1'            => _x( 'One result is available, press enter to select it.', 'enhanced select', 'woocommerce' ),
 				'i18n_matches_n'            => _x( '%qty% results are available, use up and down arrow keys to navigate.', 'enhanced select', 'woocommerce' ),
 				'i18n_no_matches'           => _x( 'No matches found', 'enhanced select', 'woocommerce' ),
@@ -1875,7 +1827,7 @@ class WC_CP_Admin {
 			}
 
 			// Initialize and save price meta
-			$composite = WC_CP_Core_Compatibility::wc_get_product( $post_id );
+			$composite = wc_get_product( $post_id );
 
 		}
 
@@ -2155,7 +2107,7 @@ class WC_CP_Admin {
 					continue;
 				}
 
-				$product = WC_CP_Core_Compatibility::wc_get_product( $post );
+				$product = wc_get_product( $post );
 
 				if ( $product->product_type === 'variation' ) {
 					$found_products[ $post ] = $woocommerce_composite_products->api->get_product_variation_title( $product );
@@ -2335,44 +2287,16 @@ class WC_CP_Admin {
 							$product_title = $woocommerce_composite_products->api->get_product_title( $selected_recommended );
 						}
 			
-						if ( WC_CP_Core_Compatibility::is_wc_version_gte_2_3() ) {
-			
-							?>
-							
-							<input type="hidden" id="group_recommended_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][recommended_id]" class="wc-component-options-search" style="width: 75%;" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php _e( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>" data-allow_clear="true" data-action="woocommerce_json_search_default_component_option" data-multiple="false" data-selected="<?php
+						?>
+						
+						<input type="hidden" id="group_recommended_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][recommended_id]" class="wc-component-options-search" style="width: 75%;" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php _e( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>" data-allow_clear="true" data-action="woocommerce_json_search_default_component_option" data-multiple="false" data-selected="<?php
 			
 								echo esc_attr( $product_title ? $product_title : __( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ) );
 			
 							?>" value="<?php echo $product_title ? $selected_recommended : ''; ?>" />
 							
-							<?php
-			
-						} else {
-			
-							?>
+						<?php
 							
-							<select id="group_recommended_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][recommended_id]" class="ajax_chosen_select_component_options" data-action="woocommerce_json_search_default_component_option" data-component_id="<?php echo isset( $data[ 'component_id' ] ) ? $data[ 'component_id' ] : ''; ?>" data-placeholder="<?php echo  __( 'No default selected. Search for a product&hellip;', 'woocommerce-composite-products' ); ?>">
-								
-								<option value=""><?php echo __( 'No default option&hellip;', 'woocommerce-composite-products' ); ?></option><?php
-			
-								$selected_recommended = $data[ 'recommended_id' ];
-			
-								if ( $selected_recommended ) {
-			
-									$product_title = $woocommerce_composite_products->api->get_product_title( $selected_recommended );
-			
-									if ( $product_title ) {
-										echo '<option value="' . $selected_recommended . '" selected="selected">' . $product_title . '</option>';
-									}
-								}
-			
-							?>
-							
-							</select>
-							
-							<?php
-								
-						}
 					}
 			
 				} else {

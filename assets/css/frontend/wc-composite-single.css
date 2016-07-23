@@ -1,0 +1,45 @@
+/*----------------------------------------------*\
+	#COLOURS
+\*----------------------------------------------*/
+/*----------------------------------------------*\
+	#COMPONENT
+\*----------------------------------------------*/
+.component {
+  display: block;
+  border: 1px solid #d7d8d8;
+  padding: 1rem 1rem 0;
+  padding-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  position: relative;
+  margin-bottom: 2rem; }
+  .component .toggle_component::after {
+    content: '>' !important;
+    position: relative;
+    top: 5px;
+    right: 4px;
+    float: right;
+    color: #b5b5b5;
+    font-weight: 600;
+    font-size: 1rem;
+    transform: scale(1.9, 1.3) rotate(90deg);
+    transition: transform 300ms ease; }
+  .component h4 {
+    color: #d41124; }
+  .component::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%; }
+  .component .component_inner {
+    padding: 1rem 0; }
+    .component .component_inner .disabled {
+      opacity: 0.5; }
+    .component .component_inner ul {
+      list-style: none; }
+    .component .component_inner li {
+      margin-bottom: 0.5rem; }
+    .component .component_inner label {
+      font-size: 0.88rem; }
+  .component.closed .toggle_component::after {
+    transform: scale(1.9, 1.3) rotate(-90deg); }

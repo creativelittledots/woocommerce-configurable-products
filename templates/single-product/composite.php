@@ -13,41 +13,56 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 global $woocommerce_composite_products;
 
-?><form method="post" enctype="multipart/form-data" class="composite_form"><?php
+?>
 
-	$loop 	= 0;
-	$steps 	= count( $components );
+<form method="post" enctype="multipart/form-data" class="js-composite-product-bind">
 
-	/**
-	 * woocommerce_composite_before_components hook
-	 *
-	 * @hooked WC_CP_Display::wc_cp_add_paged_mode_show_component_scroll_target - 10
-	 * @hooked WC_CP_Display::wc_cp_add_paged_mode_pagination - 15
-	 */
-	do_action( 'woocommerce_composite_before_components', $components, $product );
+	<div class="component" rv-each-component="product:components">
 
-	foreach ( $components as $component_id => $component_data ) {
-
-		$loop++;
-
-		wc_get_template( 'single-product/component.php', array(
-			'product'                 => $product,
-			'component_id'            => $component_id,
-			'component_data'          => $component_data,
-			'step'                    => $loop,
-			'steps'                   => $steps,
-		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+		<h4 class="component_title product_title">
 			
-	}
+			<span rv-text="component:title"></span>
+							
+			<a class="toggle_component" href="#" rv-on-click="component.close"></a>
+		
+		</h4>
+	
+		<div class="component_inner">
+	
+			<p class="component_description" rv-if="component:description" rv-text="component:description"></p>
+			
+			<select class="component_options_select" rv-if="component:style | = 'dropdown'" rv-name="component:name" rv-sku-order="component:sku_order" rv-on-change="component.update_option">
+							
+				<option class="empty none" rv-value="0" rv-selected="component:selection | = 0" rv-text="component:empty_text"></option>
+					
+				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:display" rv-selected="component:selection:id | = option.id" rv-disabled="option:available | !"></option>
+					
+			</select> 
+			
+			<ul rv-unless="component:style | = 'dropdown'">
+				
+				<li>
+				
+					<input type="radio" rv-name="component:name" rv-value="0" rv-checked="component:selection" />
+				
+					<label rv-text="component:empty_text"></label>
+					
+				</li>
+				
+				<li rv-each-option="component:options" rv-class-disabled="option:available | !">
+				
+					<input type="radio" rv-name="component:name" rv-on-click="component.update_option" rv-value="option:id" rv-checked="component:selection:id" rv-disabled="option:available | !" />
+					
+					<label rv-text="option:display">
+					
+				</li>
+				
+			</ul>
+			
+			<div class="component_content" rv-if="component:data" rv-html="component:data"></div>
+			
+		</div>
+		
+	</div>
 
-	/**
-	 * woocommerce_composite_after_components hook
-	 *
-	 * @hooked WC_CP_Display::wc_cp_add_paged_mode_cart - 10
-	 * @hooked WC_CP_Display::wc_cp_add_single_mode_cart - 10
-	 * @hooked WC_CP_Display::wc_cp_add_navigation - 15
-	 * @hooked WC_CP_Display::wc_cp_add_paged_mode_select_component_option_scroll_target - 20
-	 */
-	do_action( 'woocommerce_composite_after_components', $components, $product );
-
-?></form>
+</form>
