@@ -26,7 +26,6 @@ class WC_CP_Admin {
 
 		// Creates the admin Components and Scenarios panels
 		add_action( 'woocommerce_product_write_panels', array( $this, 'composite_write_panel' ) );
-		add_action( 'woocommerce_product_options_stock', array( $this, 'composite_stock_info' ) );
 
 		// Allows the selection of the 'composite product' type
 		add_filter( 'product_type_options', array( $this, 'add_composite_type_options' ) );
@@ -61,21 +60,14 @@ class WC_CP_Admin {
 		// Basic component config options
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_title' ), 10, 3 );
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_description' ), 15, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_options' ), 20, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_quantity_min' ), 25, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_quantity_max' ), 33, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_discount' ), 35, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_optional' ), 40, 3 );
+		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_options' ), 25, 3 );
+		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_layout_options_style' ), 30, 3 );
+		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_optional' ), 35, 3 );
 
 		// Advanced component configuration
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_default_option' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_recommended_option' ), 6, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_options_style' ), 7, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_sort_filter_show_orderby' ), 10, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_sort_filter_show_filters' ), 15, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_title' ), 20, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_description' ), 25, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_layout_hide_product_thumbnail' ), 30, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 6, 3 );
 		
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
@@ -262,16 +254,7 @@ class WC_CP_Admin {
 									$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
 
 
-									if ( $product_type == 'variable' ) {
-
-										$product_title = $title . ' ' . __( '&mdash; All Variations', 'woocommerce-composite-products' );
-
-										$variation_descriptions = $woocommerce_composite_products->api->get_product_variation_descriptions( $item_id );
-
-									} else {
-
-										$product_title = $title;
-									}
+									$product_title = $title;
 
 									if ( $woocommerce_composite_products->api->scenario_contains_product( $scenario_data, $component_id, $item_id ) ) {
 
@@ -334,13 +317,8 @@ class WC_CP_Admin {
 											continue;
 										}
 
-										if ( $product_in_scenario->product_type === 'variation' ) {
-											$selections_in_scenario[ $product_id_in_scenario ] = $woocommerce_composite_products->api->get_product_variation_title( $product_in_scenario );
-										} elseif ( $product_in_scenario->product_type === 'variable' ) {
-											$selections_in_scenario[ $product_id_in_scenario ] = $woocommerce_composite_products->api->get_product_title( $product_in_scenario ) . ' ' . __( '&mdash; All Variations', 'woocommerce-composite-products' );
-										} else {
-											$selections_in_scenario[ $product_id_in_scenario ] = $woocommerce_composite_products->api->get_product_title( $product_in_scenario );
-										}
+										$selections_in_scenario[ $product_id_in_scenario ] = $woocommerce_composite_products->api->get_product_title( $product_in_scenario );
+										
 									}
 								}
 
@@ -364,161 +342,6 @@ class WC_CP_Admin {
 			}
 
 		?></div><?php
-	}
-
-	/**
-	 * Add component layout hide title option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_layout_hide_product_title( $id, $data, $product_id ) {
-
-		$hide_product_title = isset( $data[ 'hide_product_title' ] ) ? $data[ 'hide_product_title' ] : '';
-
-		?>
-		<div class="group_hide_product_title">
-			<div class="form-field">
-				<label for="group_hide_product_title_<?php echo $id; ?>">
-					<?php echo __( 'Hide Selected Product Title', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Check this option to hide the selected product title, which is normally displayed under the available Component Options.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="checkbox" class="checkbox"<?php echo ( $hide_product_title == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_data[<?php echo $id; ?>][hide_product_title]" <?php echo ( $hide_product_title == 'yes' ? 'value="1"' : '' ); ?>/>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component layout hide description option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_layout_hide_product_description( $id, $data, $product_id ) {
-
-		$hide_product_description = isset( $data[ 'hide_product_description' ] ) ? $data[ 'hide_product_description' ] : '';
-
-		?>
-		<div class="group_hide_product_description" >
-			<div class="form-field">
-				<label for="group_hide_product_description_<?php echo $id; ?>">
-					<?php echo __( 'Hide Selected Product Description', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Check this option to hide the selected product description, which is normally displayed under the available Component Options.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="checkbox" class="checkbox"<?php echo ( $hide_product_description == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_data[<?php echo $id; ?>][hide_product_description]" <?php echo ( $hide_product_description == 'yes' ? 'value="1"' : '' ); ?>/>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component layout hide thumbnail option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_layout_hide_product_thumbnail( $id, $data, $product_id ) {
-
-		$hide_product_thumbnail = isset( $data[ 'hide_product_thumbnail' ] ) ? $data[ 'hide_product_thumbnail' ] : '';
-
-		?>
-		<div class="group_hide_product_thumbnail" >
-			<div class="form-field">
-				<label for="group_hide_product_thumbnail_<?php echo $id; ?>">
-					<?php echo __( 'Hide Selected Product Thumbnail', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Check this option to hide the selected product thumbnail, which is normally displayed under the available Component Options.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="checkbox" class="checkbox"<?php echo ( $hide_product_thumbnail == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_data[<?php echo $id; ?>][hide_product_thumbnail]" <?php echo ( $hide_product_thumbnail == 'yes' ? 'value="1"' : '' ); ?>/>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component 'show orderby' option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_sort_filter_show_orderby( $id, $data, $product_id ) {
-
-		$show_orderby = isset( $data[ 'show_orderby' ] ) ? $data[ 'show_orderby' ] : 'no';
-
-		?>
-		<div class="group_show_orderby" >
-			<div class="form-field">
-				<label for="group_show_orderby_<?php echo $id; ?>">
-					<?php echo __( 'Show Component Options Sorting Dropdown', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Check this option to show a <strong>Sort options by</strong> dropdown. Use this setting if you have added a large number of Component Options. Recommended only in combination with the <strong>Product Thumbnails</strong> style.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="checkbox" class="checkbox"<?php echo ( $show_orderby == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_data[<?php echo $id; ?>][show_orderby]" <?php echo ( $show_orderby == 'yes' ? 'value="1"' : '' ); ?>/>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component 'show filters' option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_sort_filter_show_filters( $id, $data, $product_id ) {
-
-		$show_filters         = isset( $data[ 'show_filters' ] ) ? $data[ 'show_filters' ] : 'no';
-		$selected_taxonomies  = isset( $data[ 'attribute_filters' ] ) ? $data[ 'attribute_filters' ] : array();
-		$attribute_taxonomies = wc_get_attribute_taxonomies();
-
-		?>
-		<div class="group_show_filters" >
-			<div class="form-field">
-				<label for="group_show_filters_<?php echo $id; ?>">
-					<?php echo __( 'Show Layered Component Option Filters', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Check this option to configure and display layered attribute filters to narrow down Component Options. Use this setting if you have added a large number of Component Options. Recommended only in combination with the <strong>Product Thumbnails</strong> style.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="checkbox" class="checkbox"<?php echo ( $show_filters == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_data[<?php echo $id; ?>][show_filters]" <?php echo ( $show_filters == 'yes' ? 'value="1"' : '' ); ?>/>
-			</div>
-		</div><?php
-
-		if ( $attribute_taxonomies ) {
-
-			$attribute_array = array();
-
-			foreach ( $attribute_taxonomies as $tax ) {
-
-				if ( taxonomy_exists( wc_attribute_taxonomy_name( $tax->attribute_name ) ) )
-					$attribute_array[ $tax->attribute_id ] = $tax->attribute_label;
-			}
-
-			?><div class="group_filters" >
-				<div class="bto_attributes_selector bto_multiselect">
-					<div class="form-field">
-						<label><?php echo __( 'Active Attribute Filters', 'woocommerce-composite-products' ); ?>:</label>
-						<select id="bto_attribute_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][attribute_filters][]" style="width: 75%" class="multiselect wc-enhanced-select" multiple="multiple" data-placeholder="<?php echo  __( 'Select product attributes&hellip;', 'woocommerce-composite-products' ); ?>"><?php
-
-							foreach ( $attribute_array as $attribute_taxonomy_id => $attribute_taxonomy_label )
-								echo '<option value="' . $attribute_taxonomy_id . '" ' . selected( in_array( $attribute_taxonomy_id, $selected_taxonomies ), true, false ).'>' . $attribute_taxonomy_label . '</option>';
-
-						?></select>
-					</div>
-				</div><?php
-
-				// Hook here to add your own custom filter config options
-				do_action( 'woocommerce_composite_component_admin_config_filter_options', $id, $data, $product_id );
-
-			?></div><?php
-		}
 	}
 
 	/**
@@ -585,34 +408,7 @@ class WC_CP_Admin {
 
 		global $woocommerce_composite_products;
 
-		$query_type          = isset( $data[ 'query_type' ] ) ? $data[ 'query_type' ] : 'product_ids';
-		$product_categories  = ( array ) get_terms( 'product_cat', array( 'get' => 'all' ) );
-		$selected_categories = isset( $data[ 'assigned_category_ids' ] ) ? $data[ 'assigned_category_ids' ] : array();
-
-		$select_by = array(
-			'product_ids'  => __( 'Select products', 'woocommerce-composite-products' ),
-			'category_ids' => __( 'Select categories', 'woocommerce-composite-products' )
-		);
-
-		// Add your own custom query option
-		$select_by = apply_filters( 'woocommerce_composite_component_query_types', $select_by, $data, $product_id );
-
 		?>
-		<div class="bto_query_type">
-			<div class="form-field">
-				<label>
-					<?php echo __( 'Component Options', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Select the products you want to use as Component Options. You can add products individually, or select a category to add all associated products.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<select class="bto_query_type" name="bto_data[<?php echo $id; ?>][query_type]"><?php
-
-					foreach ( $select_by as $key => $description ) {
-						?><option value="<?php echo $key; ?>" <?php selected( $query_type, $key, true ); ?>><?php echo $description; ?></option><?php
-					}
-
-				?></select>
-			</div>
-		</div>
 
 		<div class="bto_selector bto_query_type_selector bto_multiselect bto_query_type_product_ids">
 			<div class="form-field"><?php
@@ -647,17 +443,7 @@ class WC_CP_Admin {
 			
 		</div>
 
-		<div class="bto_category_selector bto_query_type_selector bto_multiselect bto_query_type_category_ids">
-			<div class="form-field">
-
-				<select id="bto_category_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_category_ids][]" style="width: 75%" class="multiselect wc-enhanced-select" multiple="multiple" data-placeholder="<?php echo  __( 'Select product categories&hellip;', 'woocommerce-composite-products' ); ?>"><?php
-
-					foreach ( $product_categories as $product_category )
-						echo '<option value="' . $product_category->term_id . '" ' . selected( in_array( $product_category->term_id, $selected_categories ), true, false ).'>' . $product_category->name . '</option>';
-
-				?></select>
-			</div>
-		</div><?php
+		<?php
 
 		// Hook here to add your own custom query config options
 		do_action( 'woocommerce_composite_component_admin_config_query_options', $id, $data, $product_id );
@@ -735,81 +521,6 @@ class WC_CP_Admin {
 				}
 
 			?></div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component config min quantity option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_config_quantity_min( $id, $data, $product_id ) {
-
-		$quantity_min = isset( $data[ 'quantity_min' ] ) ? $data[ 'quantity_min' ] : 1;
-
-		?>
-		<div class="group_quantity_min">
-			<div class="form-field">
-				<label for="group_quantity_min_<?php echo $id; ?>">
-					<?php echo __( 'Min Quantity', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Set a minimum quantity for the selected Component Option.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="number" class="group_quantity_min" name="bto_data[<?php echo $id; ?>][quantity_min]" id="group_quantity_min_<?php echo $id; ?>" value="<?php echo $quantity_min; ?>" placeholder="" step="1" min="0" />
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component config max quantity option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_config_quantity_max( $id, $data, $product_id ) {
-
-		$quantity_max = isset( $data[ 'quantity_max' ] ) ? $data[ 'quantity_max' ] : 1;
-
-		?>
-		<div class="group_quantity_max">
-			<div class="form-field">
-				<label for="group_quantity_max_<?php echo $id; ?>">
-					<?php echo __( 'Max Quantity', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Set a maximum quantity for the selected Component Option.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="number" class="group_quantity_max" name="bto_data[<?php echo $id; ?>][quantity_max]" id="group_quantity_max_<?php echo $id; ?>" value="<?php echo $quantity_max; ?>" placeholder="" step="1" min="0" />
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Add component config discount option.
-	 *
-	 * @param  int    $id
-	 * @param  array  $data
-	 * @param  int    $product_id
-	 * @return void
-	 */
-	function component_config_discount( $id, $data, $product_id ) {
-
-		$discount = isset( $data[ 'discount' ] ) ? $data[ 'discount' ] : '';
-
-		?>
-		<div class="group_discount">
-			<div class="form-field">
-				<label for="group_discount_<?php echo $id; ?>">
-					<?php echo __( 'Discount %', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Component-level discount applied to any selected Component Option when the <strong>Per-Item Pricing</strong> field is checked. Note that component-level discounts are calculated on top of regular product prices.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-				</label>
-				<input type="text" class="group_discount input-text wc_input_decimal" name="bto_data[<?php echo $id; ?>][discount]" id="group_discount_<?php echo $id; ?>" value="<?php echo $discount; ?>" placeholder="" />
-			</div>
 		</div>
 		<?php
 	}
@@ -903,8 +614,8 @@ class WC_CP_Admin {
 	 */
 	function composite_write_panel_tabs() {
 
-		echo '<li class="bto_product_tab show_if_composite linked_product_options composite_product_options"><a href="#bto_product_data">'.__( 'Components', 'woocommerce-composite-products' ).'</a></li>';
-		echo '<li class="bto_product_tab show_if_composite linked_product_options composite_scenarios"><a href="#bto_scenario_data">'.__( 'Scenarios', 'woocommerce-composite-products' ).'</a></li>';
+		echo '<li class="bto_product_tab show_if_composite composite_product_options"><a href="#bto_product_data">'.__( 'Components', 'woocommerce-composite-products' ).'</a></li>';
+		echo '<li class="bto_product_tab show_if_composite composite_scenarios"><a href="#bto_scenario_data">'.__( 'Scenarios', 'woocommerce-composite-products' ).'</a></li>';
 	}
 
 	/**
@@ -922,28 +633,7 @@ class WC_CP_Admin {
 		// Sale Price
 		woocommerce_wp_text_input( array( 'id' => '_base_sale_price', 'class' => 'short', 'label' => __( 'Base Sale Price', 'woocommerce-composite-products' ) . ' (' . get_woocommerce_currency_symbol() . ')', 'data_type' => 'price' ) );
 
-		// Hide Shop Price
-		woocommerce_wp_checkbox( array( 'id' => '_bto_hide_shop_price', 'label' => __( 'Hide Price', 'woocommerce-composite-products' ), 'desc_tip' => true, 'description' => __( 'Check this box to hide the Composite price from the shop catalog and product summary.', 'woocommerce-composite-products' ) ) );
-
 		echo '</div>';
-	}
-
-	/**
-	 * Add Composited Products stock note.
-	 *
-	 * @return void
-	 */
-	function composite_stock_info() {
-		global $post; ?>
-
-		<p class="form-field show_if_composite composite_stock_msg">
-			<label><?php _e( 'Note', 'woocommerce-composite-products' ); ?></label>
-			<span class="note">
-				<?php _e( 'Use these settings to enable stock management at composite level' ); ?>
-				<img class="help_tip" data-tip="<?php echo __( 'By default, the sale of a product within a composite has the same effect on its stock as an individual sale. There are no separate inventory settings for composited items. However, this pane can be used to enable stock management at composite level. This can be very useful for allocating composite stock quota, or for keeping track of composited item sales.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-			</span>
-		</p><?php
-
 	}
 
 	/**
@@ -979,7 +669,7 @@ class WC_CP_Admin {
 						<?php _e( 'Build a SKU?', 'woocommerce-composite-products' ); ?>
 						<img class="help_tip" data-tip="<?php echo __( 'Check this box if would like to build a SKU from the components', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					</label>
-					<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php echo addslashes(checked(get_post_meta($product_id, '_bto_build_sku', true), 'yes', false)); ?> />
+					<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php checked( get_post_meta($post->ID, '_bto_build_sku', true), 'yes' ); ?> />
 				</p>
 			</div>
 			<div class="options_group config_group bto_clearfix">
@@ -1168,12 +858,6 @@ class WC_CP_Admin {
 				update_post_meta( $post_id, '_base_price', stripslashes( wc_format_decimal( $_POST[ '_base_regular_price' ] ) ) );
 			}
 
-			if ( ! empty( $_POST[ '_bto_hide_shop_price' ] ) ) {
-				update_post_meta( $post_id, '_bto_hide_shop_price', 'yes' );
-			} else {
-				update_post_meta( $post_id, '_bto_hide_shop_price', 'no' );
-			}
-
 		} else {
 
 			update_post_meta( $post_id, '_per_product_pricing_bto', 'no' );
@@ -1255,7 +939,6 @@ class WC_CP_Admin {
 			foreach ( $posted_composite_data[ 'bto_data' ] as $row_id => $post_data ) {
 
 				$bto_ids     = isset( $post_data[ 'assigned_ids' ] ) ? $post_data[ 'assigned_ids' ] : '';
-				$bto_cat_ids = isset( $post_data[ 'assigned_category_ids' ] ) ? $post_data[ 'assigned_category_ids' ] : '';
 
 				$group_id    = isset ( $post_data[ 'group_id' ] ) ? stripslashes( $post_data[ 'group_id' ] ) : ( current_time( 'timestamp' ) + $counter );
 				$counter++;
@@ -1264,13 +947,6 @@ class WC_CP_Admin {
 
 				// Save component id
 				$bto_data[ $group_id ][ 'component_id' ] = $group_id;
-
-				// Save query type
-				if ( isset( $post_data[ 'query_type' ] ) && ! empty( $post_data[ 'query_type' ] ) ) {
-					$bto_data[ $group_id ][ 'query_type' ] = stripslashes( $post_data[ 'query_type' ] );
-				} else {
-					$bto_data[ $group_id ][ 'query_type' ] = 'product_ids';
-				}
 
 				if ( ! empty( $bto_ids ) ) {
 
@@ -1326,15 +1002,8 @@ class WC_CP_Admin {
 
 				}
 
-				if ( ! empty( $bto_cat_ids ) ) {
-
-					$bto_cat_ids = array_map( 'absint', $post_data[ 'assigned_category_ids' ] );
-
-					$bto_data[ $group_id ][ 'assigned_category_ids' ] = array_values( $bto_cat_ids );
-				}
-
 				// True if no products were added
-				if ( ( $bto_data[ $group_id ][ 'query_type' ] == 'product_ids' && empty( $bto_data[ $group_id ][ 'assigned_ids' ] ) ) || ( $bto_data[ $group_id ][ 'query_type' ] == 'category_ids' && empty( $bto_data[ $group_id ][ 'assigned_category_ids' ] ) ) ) {
+				if ( empty( $bto_data[ $group_id ][ 'assigned_ids' ] ) ) {
 
 					unset( $bto_data[ $group_id ] );
 					$zero_product_item_exists = true;
@@ -1392,98 +1061,11 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'description' ] = '';
 				}
 
-				// Save quantity data
-				if ( isset( $post_data[ 'quantity_min' ] ) && isset( $post_data[ 'quantity_max' ] ) && is_numeric( $post_data[ 'quantity_min' ] ) && is_numeric( $post_data[ 'quantity_max' ] ) ) {
-
-					$quantity_min = absint( $post_data[ 'quantity_min' ] );
-					$quantity_max = absint( $post_data[ 'quantity_max' ] );
-
-					if ( $quantity_min >= 0 && $quantity_max >= $quantity_min && $quantity_max > 0 ) {
-
-						$bto_data[ $group_id ][ 'quantity_min' ] = $quantity_min;
-						$bto_data[ $group_id ][ 'quantity_max' ] = $quantity_max;
-
-					} else {
-						$this->save_errors[] = $this->add_admin_error( sprintf( __( 'The quantities you entered for \'%s\' were not valid and have been reset. Please enter non-negative integer values, with Quantity Min greater than or equal to Quantity Max and Quantity Max greater than zero.', 'woocommerce-composite-products' ), strip_tags( stripslashes( $post_data[ 'title' ] ) ) ) );
-						$bto_data[ $group_id ][ 'quantity_min' ] = 1;
-						$bto_data[ $group_id ][ 'quantity_max' ] = 1;
-					}
-
-				} else {
-					// If its not there, it means the product was just added
-					$bto_data[ $group_id ][ 'quantity_min' ] = 1;
-					$bto_data[ $group_id ][ 'quantity_max' ] = 1;
-					$this->save_errors[] = $this->add_admin_error( sprintf( __( 'The quantities you entered for \'%s\' were not valid and have been reset. Please enter non-negative integer values, with Quantity Min greater than or equal to Quantity Max and Quantity Max greater than zero.', 'woocommerce-composite-products' ), strip_tags( stripslashes( $post_data[ 'title' ] ) ) ) );
-				}
-
-				// Save discount data
-				if ( isset( $post_data[ 'discount' ] ) ) {
-
-					if ( is_numeric( $post_data[ 'discount' ] ) ) {
-
-						$discount = ( float ) wc_format_decimal( $post_data[ 'discount' ] );
-
-						if ( $discount < 0 || $discount > 100 ) {
-							$this->save_errors[] = $this->add_admin_error( sprintf( __( 'The discount value you entered for \'%s\' was not valid and has been reset. Please enter a positive number between 0-100.', 'woocommerce-composite-products' ), strip_tags( stripslashes( $post_data[ 'title' ] ) ) ) );
-							$bto_data[ $group_id ][ 'discount' ] = '';
-						} else {
-							$bto_data[ $group_id ][ 'discount' ] = $discount;
-						}
-					} else {
-						$bto_data[ $group_id ][ 'discount' ] = '';
-					}
-				} else {
-					$bto_data[$group_id][ 'discount' ] = '';
-				}
-
 				// Save optional data
 				if ( isset( $post_data[ 'optional' ] ) ) {
 					$bto_data[ $group_id ][ 'optional' ] = 'yes';
 				} else {
 					$bto_data[ $group_id ][ 'optional' ] = 'no';
-				}
-
-				// Save hide product title data
-				if ( isset( $post_data[ 'hide_product_title' ] ) ) {
-					$bto_data[ $group_id ][ 'hide_product_title' ] = 'yes';
-				} else {
-					$bto_data[ $group_id ][ 'hide_product_title' ] = 'no';
-				}
-
-				// Save hide product description data
-				if ( isset( $post_data[ 'hide_product_description' ] ) ) {
-					$bto_data[ $group_id ][ 'hide_product_description' ] = 'yes';
-				} else {
-					$bto_data[ $group_id ][ 'hide_product_description' ] = 'no';
-				}
-
-				// Save hide product thumbnail data
-				if ( isset( $post_data[ 'hide_product_thumbnail' ] ) ) {
-					$bto_data[ $group_id ][ 'hide_product_thumbnail' ] = 'yes';
-				} else {
-					$bto_data[ $group_id ][ 'hide_product_thumbnail' ] = 'no';
-				}
-
-				// Save show orderby data
-				if ( isset( $post_data[ 'show_orderby' ] ) ) {
-					$bto_data[ $group_id ][ 'show_orderby' ] = 'yes';
-				} else {
-					$bto_data[ $group_id ][ 'show_orderby' ] = 'no';
-				}
-
-				// Save show filters data
-				if ( isset( $post_data[ 'show_filters' ] ) ) {
-					$bto_data[ $group_id ][ 'show_filters' ] = 'yes';
-				} else {
-					$bto_data[ $group_id ][ 'show_filters' ] = 'no';
-				}
-
-				// Save filters
-				if ( ! empty( $post_data[ 'attribute_filters' ] ) ) {
-
-					$attribute_filter_ids = array_map( 'absint', $post_data[ 'attribute_filters' ] );
-
-					$bto_data[ $group_id ][ 'attribute_filters' ] = array_values( $attribute_filter_ids );
 				}
 
 				// Prepare position data
@@ -1531,11 +1113,23 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'affect_sku_order' ] = '';
 				}
 				
-				if( isset ($post_data['sku_options']) ) {
-					$$bto_data[ $group_id ][ 'sku_options' ] = $post_data['sku_options'];
+				if( isset ( $post_data['sku_options'] ) ) {
+					$bto_data[ $group_id ][ 'sku_options' ] = $post_data['sku_options'];
 				} else {
 					$bto_data[ $group_id ][ 'sku_options' ] = array();
 				}	
+				
+				if( isset ( $post_data['price_options'] ) ) {
+					$bto_data[ $group_id ][ 'price_options' ] = $post_data['price_options'];
+				} else {
+					$bto_data[ $group_id ][ 'price_options' ] = array();
+				}
+				
+				if( isset( $post_data['tag_numbers'] ) ) {
+					$bto_data[ $group_id ][ 'tag_numbers' ] = 'yes';
+				} else {
+					$bto_data[ $group_id ][ 'tag_numbers' ] = 'no';
+				}
 
 				// Invalidate query cache
 				if ( class_exists( 'WC_Cache_Helper' ) ) {
@@ -1565,7 +1159,7 @@ class WC_CP_Admin {
 				$ppp_prompt                  = '';
 				$dropdowns_prompt            = '';
 
-				if ( isset( $_POST[ '_per_product_pricing_bto' ] ) && empty( $_POST[ '_bto_hide_shop_price' ] ) ) {
+				if ( isset( $_POST[ '_per_product_pricing_bto' ] ) ) {
 					$show_large_composite_prompt = true;
 					$ppp_prompt = __( ' To avoid placing a big load on your server, consider checking the Hide Price option, located in the General tab. This setting will bypass all min/max pricing calculations which typically happen during product load when the Per-Item Pricing option is checked.', 'woocommerce-composite-products' );
 				}
@@ -1772,48 +1366,6 @@ class WC_CP_Admin {
 				    $ordering_loop++;
 				}
 
-			}
-
-			// Verify defaults
-			if ( ! empty( $ordered_bto_scenario_data ) ) {
-
-				// Stacked layout notices
-
-
-				if ( $composite_layout === 'single' && $masked_rules_exist ) {
-					$this->save_errors[] = $this->add_admin_error( __( 'The use of Component masks in Scenarios is only available with the Progressive, Stepped, and Componentized layout options. To keep your Scenario settings intact, the Composite has been set to use the Progressive layout.', 'woocommerce-composite-products' ) );
-					update_post_meta( $post_id, '_bto_style', 'progressive' );
-				} elseif ( $composite_layout === 'single' && $compat_group_actions_exist ) {
-					$this->save_errors[] = $this->add_admin_error( __( 'The Stacked layout is not recommended when using Scenarios to create selection dependencies between Component Options. In general, the Progressive, Stepped and Componentized layouts provide a more streamlined user experience in applications that involve dependent Component Options.', 'woocommerce-composite-products' ) );
-				}
-
-				// Only build scenarios for the defaults
-				foreach ( $ordered_bto_data as $group_id => $group_data ) {
-					$bto_data[ $group_id ][ 'current_component_options' ] = array( $group_data[ 'default_id' ] );
-				}
-
-				$scenarios_for_products = $woocommerce_composite_products->api->build_scenarios( $ordered_bto_scenario_data, $bto_data );
-
-				$common_scenarios = array_values( $scenarios_for_products[ 'scenarios' ] );
-
-				foreach ( $ordered_bto_data as $group_id => $group_data ) {
-
-					$default_option_id = $group_data[ 'default_id' ];
-
-					if ( $default_option_id !== '' ) {
-
-						if ( empty( $scenarios_for_products[ 'scenario_data' ][ $group_id ][ $default_option_id ] ) ) {
-							$this->save_errors[] = $this->add_admin_error( sprintf( __( 'The default option that you selected for \'%s\' is not active in any Scenarios. The default Component Options must be compatible in order to work. Always double-check your preferences before saving, and always save any changes made to the Component Options before choosing new defaults.', 'woocommerce-composite-products' ), $group_data[ 'title' ] ) );
-						} else {
-							$common_scenarios = array_intersect( $common_scenarios, $scenarios_for_products[ 'scenario_data' ][ $group_id ][ $default_option_id ] );
-						}
-
-					}
-				}
-
-				if ( empty( $common_scenarios ) ) {
-					$this->save_errors[] = $this->add_admin_error( __( 'The set of default Component Options that you selected was not found in any of the defined Scenarios. The default Component Options must be compatible in order to work. Always double-check the default Component Options before creating or modifying Scenarios.', 'woocommerce-composite-products' ) );
-				}
 			}
 
 			// Save config
@@ -2253,7 +1805,7 @@ class WC_CP_Admin {
 						
 						<select id="group_recommended_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][recommended_id]">
 							
-							<option value=""><?php echo __( 'No default option&hellip;', 'woocommerce-composite-products' ); ?></option>
+							<option value=""><?php echo __( 'No recommended option&hellip;', 'woocommerce-composite-products' ); ?></option>
 							
 							<?php
 			
@@ -2318,6 +1870,32 @@ class WC_CP_Admin {
 		
 	}
 	
+	public function component_config_tag_numbers_option($id, $data, $product_id) {
+    	
+    	?>
+		
+		<div class="option_style">
+			
+			<div class="form-field">
+		
+				<label class="bundle_group_label">
+					
+					<?php _e( 'Require Tag Numbers', 'woocommerce-composite-products' ); ?>
+					
+					<img class="help_tip" data-tip="<?php echo __( 'Check this box if you would this component to display an input for tag numbers during configuration', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					
+				</label>
+				
+				<input type="checkbox" class="checkbox tag_numbers" name="bto_data[<?php echo $id; ?>][tag_numbers]" <?php echo isset( $data[ 'tag_numbers' ] ) ? checked($data[ 'tag_numbers' ], 'yes', false) : ''; ?> />
+				
+			</div>
+			
+		</div>
+		
+		<?php
+    	
+	}
+	
 	public function component_layout_options_style($id, $data, $product_id) {
 		
 		?>
@@ -2360,7 +1938,7 @@ class WC_CP_Admin {
 		
 		?>
 		
-		<div class="group_affect_sku" <?php echo !checked(get_post_meta($product_id, '_bto_build_sku', true), 'yes', false) ? 'style="display: none;"' : ''; ?>>
+		<div class="group_affect_sku" <?php echo get_post_meta($product_id, '_bto_build_sku', true) != 'yes' ? 'style="display: none;"' : ''; ?>>
 	
 			<div class="form-field">
 		
@@ -2386,7 +1964,7 @@ class WC_CP_Admin {
 		
 		?>
 		
-		<div class="group_affected_by_sku group_affect_sku_order" <?php echo !isset($data[ 'affect_sku' ]) || !checked($data[ 'affect_sku' ], 'yes', false) ? 'style="display: none;"' : ''; ?>>
+		<div class="group_affected_by_sku group_affect_sku_order" <?php echo get_post_meta($product_id, '_bto_build_sku', true) != 'yes' || ! isset( $data[ 'affect_sku' ] ) || $data[ 'affect_sku' ] != 'yes' ? 'style="display: none;"' : ''; ?>>
 	
 			<div class="form-field">
 		
@@ -2477,7 +2055,7 @@ class WC_CP_Admin {
 									
 									<td>
 										
-										<input type="text" name="bto_data[<?php echo $id; ?>][sku_options][<?php echo $item_id; ?>]" value="<?php echo isset($data[ 'sku_options' ][ $item_id ]) ? $data[ 'sku_options' ][ $item_id ] : get_post_meta($item_id, '_sku', true); ?>" />
+										<input type="text" name="bto_data[<?php echo $id; ?>][sku_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'sku_options' ][ $item_id ] ) ? $data[ 'sku_options' ][ $item_id ] : ''; ?>" />
 										
 									</td>
 									
@@ -2518,6 +2096,8 @@ class WC_CP_Admin {
 					<?php _e( 'Price Options', 'woocommerce-composite-products' ); ?>
 					
 					<img class="help_tip" data-tip="<?php echo __( 'Enter the Price to per component option.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					
+					<small>Leave prices blank if you want price to be retrieved from respective products.</small>
 					
 				</label>
 				
@@ -2574,7 +2154,7 @@ class WC_CP_Admin {
 										
 										<?php $item = wc_get_product($item_id); ?>
 										
-										<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset($data[ 'price_options' ][ $item_id ]) ? $data[ 'price_options' ][ $item_id ] : $item->get_price(); ?>" />
+										<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'price_options' ][ $item_id ] ) ? $data[ 'price_options' ][ $item_id ] : ''; ?>" />
 										
 									</td>
 									

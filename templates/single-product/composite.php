@@ -15,7 +15,7 @@ global $woocommerce_composite_products;
 
 ?>
 
-<form method="post" enctype="multipart/form-data" class="js-composite-product-bind">
+<form method="post" class="js-composite-product-form js-composite-product-bind" data-abide="ajax">
 
 	<div class="component" rv-each-component="product:components">
 
@@ -31,35 +31,56 @@ global $woocommerce_composite_products;
 	
 			<p class="component_description" rv-if="component:description" rv-text="component:description"></p>
 			
-			<select class="component_options_select" rv-if="component:style | = 'dropdown'" rv-name="component:name" rv-sku-order="component:sku_order" rv-on-change="component.update_option">
+			<select class="component_options_select" rv-if="component:style | = 'dropdowns'" rv-name="component:id" rv-sku-order="component:sku_order" rv-on-change="component.select" rv-required="component:optional | !" rv-value="component:first">
 							
-				<option class="empty none" rv-value="0" rv-selected="component:selection | = 0" rv-text="component:empty_text"></option>
+				<option class="empty none" rv-value="0" rv-text="component:empty_text"></option>
 					
-				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:display" rv-selected="component:selection:id | = option.id" rv-disabled="option:available | !"></option>
+				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:display" rv-on-change="option.select" rv-disabled="option:available | !"></option>
 					
 			</select> 
 			
-			<ul rv-unless="component:style | = 'dropdown'">
+			<ul rv-if="component:style | = 'radios'" class="js-component-options">
 				
-				<li>
+				<li rv-if="component:optional">
 				
-					<input type="radio" rv-name="component:name" rv-value="0" rv-checked="component:selection" />
+					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append '_0'" rv-name="component:id" rv-value="0" rv-on-change="component.deselect" rv-checked="component:selected" />
 				
-					<label rv-text="component:empty_text"></label>
+					<label rv-text="component:empty_text" rv-for="'component_' | append component:id | append '_option_' | append '_0'"></label>
 					
 				</li>
 				
 				<li rv-each-option="component:options" rv-class-disabled="option:available | !">
 				
-					<input type="radio" rv-name="component:name" rv-on-click="component.update_option" rv-value="option:id" rv-checked="component:selection:id" rv-disabled="option:available | !" />
+					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="option:selected" rv-disabled="option:available | !" />
 					
-					<label rv-text="option:display">
+					<label rv-html="option:display" rv-for="'component_' | append component:id | append '_option_' | append option.id"></label>
 					
 				</li>
 				
 			</ul>
 			
-			<div class="component_content" rv-if="component:data" rv-html="component:data"></div>
+			<ul rv-if="component:style | = 'checkboxes'" class="js-component-options">
+				
+				<li rv-each-option="component:options" rv-class-disabled="option:available | !">
+				
+					<input type="checkbox" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="option:selected" rv-disabled="option:available | !" />
+					
+					<label rv-html="option:display" rv-for="'component_' | append component:id | append '_option_' | append option.id"></label>
+					
+				</li>
+				
+			</ul>
+			
+			<div rv-if="component:show_tag_number_field">
+				
+				<label for="'component_' | append component:id | append '_tag_number'">Tag Number</label>
+			
+				<input type="text" id="'component_' | append component:id | append '_tag_number'" rv-value="component:tag_number" placeholder="Please provide a tag number" required />
+				
+				<small class="error">A tag number is required for this components</small>
+				
+				
+			</div>
 			
 		</div>
 		

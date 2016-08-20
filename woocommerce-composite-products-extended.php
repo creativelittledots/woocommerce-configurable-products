@@ -38,7 +38,6 @@ class WC_Composite_Products {
 	public $cart;
 	public $order;
 	public $display;
-	public $compatibility;
 
 	public function __construct() {
 
@@ -69,16 +68,9 @@ class WC_Composite_Products {
 
 		// Functions for 2.X back-compat
 		include_once( 'includes/wc-cp-functions.php' );
-
-		// Class containing extensions compatibility functions and filters
-		require_once( 'includes/class-wc-cp-compatibility.php' );
-		$this->compatibility = new WC_CP_Compatibility();
 		
 		// WP_Query wrapper for component option queries
 		require_once( 'includes/class-wc-cp-query.php' );
-
-		// Composited product wrapper
-		require_once( 'includes/class-wc-cp-product.php' );
 
 		// Composite product API
 		require_once( 'includes/class-wc-cp-api.php' );

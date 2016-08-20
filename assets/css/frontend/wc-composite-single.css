@@ -40,6 +40,7 @@
     .component .component_inner li {
       margin-bottom: 0.5rem; }
     .component .component_inner label {
+	  display: block;
       font-size: 0.88rem; }
   .component.closed .toggle_component::after {
     transform: scale(1.9, 1.3) rotate(-90deg); }

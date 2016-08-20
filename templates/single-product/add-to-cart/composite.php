@@ -32,7 +32,7 @@ global $product;
 	
 	<div class="medium-8 columns">
 		
-		<button type="submit" class="button buy radius small-12 disabled" rv-disabled="product:errors" rv-class-disabled="product:errors" rv-on-click="product.add_to_cart"><?php echo $product->single_add_to_cart_text(); ?></button>
+		<button type="submit" class="button buy radius small-12 disabled" rv-disabled="product:errors" rv-class-disabled="product:errors" rv-on-click="product.add_to_cart_click"><?php echo $product->single_add_to_cart_text(); ?></button>
 		
 	</div>
 	

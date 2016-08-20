@@ -51,101 +51,6 @@ jQuery( function($) {
 		return formatString;
 	}
 
-	$.fn.wc_cp_chosen_select_component_options = function() {
-
-		var component_id = $( this ).data( 'component_id' );
-		var select       = $( this );
-		var action       = $( this ).data( 'action' );
-
-		if ( ! component_id ) {
-			component_id = $( this ).closest( '.bto_group' ).find( 'input.group_id' ).val();
-		}
-
-		$( this ).ajaxChosen( {
-			method: 	           'GET',
-			url: 		           woocommerce_admin_meta_boxes.ajax_url,
-			dataType: 	           'json',
-			afterTypeDelay:        250,
-			data:		           {
-				action: 		       action,
-				composite_id:          woocommerce_admin_meta_boxes.post_id,
-				component_id:          component_id,
-				security: 		       woocommerce_admin_meta_boxes.search_products_nonce
-			}
-		}, function ( data ) {
-			var terms = {};
-
-			if ( action === 'woocommerce_json_search_default_component_option' && select.val() > 0 ) {
-				terms[ '0' ] = wc_composite_admin_params.i18n_no_default;
-			}
-
-			if ( action === 'woocommerce_json_search_component_options_in_scenario' ) {
-
-				if ( select.data( 'component_optional' ) === 'yes' ) {
-					if ( select.find( 'option[value="-1"]' ).length === 0 ) {
-						terms[ '-1' ] = wc_composite_admin_params.i18n_none;
-					}
-				}
-
-				if ( select.find( 'option[value="0"]' ).length === 0 ) {
-					terms[ '0' ] = wc_composite_admin_params.i18n_all;
-				}
-			}
-
-			$.each( data, function ( i, val ) {
-				if ( select.find( 'option[value="' + i + '"]' ).length === 0 ) {
-					terms[i] = val;
-				}
-			} );
-
-			return terms;
-		} );
-
-		if ( action === 'woocommerce_json_search_component_options_in_scenario' ) {
-			$( this ).on( 'chosen:showing_dropdown', function() {
-
-				if ( select.data( 'component_optional' ) === 'yes' ) {
-					if ( select.find( 'option[value="-1"]' ).length === 0 ) {
-						$( '<option />' ).attr( 'value', '-1' ).html( wc_composite_admin_params.i18n_none ).prependTo( select );
-					}
-				}
-
-				if ( select.find( 'option[value="0"]' ).length === 0 ) {
-					$( '<option />' ).attr( 'value', '0' ).html( wc_composite_admin_params.i18n_all ).prependTo( select );
-				}
-
-				select.trigger( 'chosen:updated' );
-			} );
-		}
-	};
-
-	$.fn.wc_cp_chosen_select_products = function() {
-
-		var select = $( this );
-
-		$( this ).ajaxChosen( {
-			method: 		'GET',
-			url: 			woocommerce_admin_meta_boxes.ajax_url,
-			dataType: 		'json',
-			afterTypeDelay: 250,
-			data: 			{
-				action: 		'woocommerce_json_search_products',
-				security: 		woocommerce_admin_meta_boxes.search_products_nonce
-			}
-		}, function ( data ) {
-
-			var terms = {};
-
-		    $.each( data, function ( i, val ) {
-		    	if ( select.find( 'option[value="' + i + '"]' ).length === 0 ) {
-		        	terms[i] = val;
-		        }
-		    } );
-
-		    return terms;
-		} );
-	};
-
 	$.fn.wc_cp_select2 = function() {
 
 		$( this ).find( ':input.wc-enhanced-select' ).filter( ':not(.enhanced)' ).each( function() {
@@ -311,23 +216,13 @@ jQuery( function($) {
 
 	var wc_cp_block_params = {};
 
-	if ( wc_composite_admin_params.is_wc_version_gte_2_3 == 'yes' ) {
-		wc_cp_block_params = {
-			message:    null,
-			overlayCSS: {
-				background: '#fff',
-				opacity:    0.6
-			}
-		};
-	} else {
-		wc_cp_block_params = {
-			message:    null,
-			overlayCSS: {
-				background: '#fff url(' + woocommerce_admin_meta_boxes.plugin_url + '/assets/images/ajax-loader.gif) no-repeat center',
-				opacity:    0.6
-			}
-		};
-	}
+	wc_cp_block_params = {
+		message:    null,
+		overlayCSS: {
+			background: '#fff',
+			opacity:    0.6
+		}
+	};
 
 	// composite type move stock msg up
 	$( '.composite_stock_msg' ).insertBefore( '._manage_stock_field' );
@@ -420,26 +315,6 @@ jQuery( function($) {
 					$( this ).find( '.bto_group_data .group_discount' ).hide();
 				} );
 			}
-		}
-
-	} ).change();
-
-	// nyp support
-	$( '#_nyp' ).change( function() {
-
-		if ( $( 'select#product-type' ).val() == 'composite' ) {
-
-			if ( $( '#_nyp' ).is( ':checked' ) ) {
-
-				$( 'input#_per_product_pricing_bto' ).prop( 'checked', false );
-				$( '.bto_per_item_pricing' ).hide();
-
-			} else {
-
-				$( '.bto_per_item_pricing' ).show();
-			}
-
-			$( 'input#_per_product_pricing_bto' ).change();
 		}
 
 	} ).change();
@@ -549,17 +424,8 @@ jQuery( function($) {
 	$( '#bto_product_data .config_group .group_show_filters input' ).change();
 
 	// Ajax Chosen Single Product Selector
-
-	if ( wc_composite_admin_params.is_wc_version_gte_2_3 == 'yes' ) {
-
-		$( '#bto_product_data .config_group, #bto_scenario_data .bto_scenarios' ).wc_cp_select2_component_options();
-
-	} else {
-
-		$( '#bto_product_data .config_group select.ajax_chosen_select_component_options, #bto_scenario_data select.ajax_chosen_select_component_options' ).each( function() {
-			$( this ).wc_cp_chosen_select_component_options();
-		} );
-	}
+	
+	$( '#bto_product_data .config_group, #bto_scenario_data .bto_scenarios' ).wc_cp_select2_component_options();
 
 	// Component Add
 	var bto_groups_metabox_count = $( '.bto_groups .bto_group' ).size();
@@ -583,16 +449,8 @@ jQuery( function($) {
 
 			var added = $( '#bto_config_group_inner .bto_groups .bto_group' ).last();
 
-			if ( wc_composite_admin_params.is_wc_version_gte_2_3 == 'yes' ) {
-
-				added.wc_cp_select2();
-				added.wc_cp_select2_products();
-
-			} else {
-
-				added.find( '.ajax_chosen_select_products' ).wc_cp_chosen_select_products();
-				added.find( '.chosen_select' ).chosen();
-			}
+			added.wc_cp_select2();
+			added.wc_cp_select2_products();
 
 			$( 'input#_per_product_pricing_bto' ).change();
 
@@ -682,21 +540,8 @@ jQuery( function($) {
 
 			var added = $( '.bto_scenario_' + bto_scenarios_metabox_count );
 
-			if ( wc_composite_admin_params.is_wc_version_gte_2_3 == 'yes' ) {
-
-				added.wc_cp_select2();
-				added.wc_cp_select2_component_options();
-
-			} else {
-
-				added.find( '.bto_scenario_ids' ).each( function() {
-					$( this ).chosen();
-				} );
-
-				added.find( '.ajax_chosen_select_component_options' ).each( function() {
-					$( this ).wc_cp_chosen_select_component_options();
-				} );
-			}
+			added.wc_cp_select2();
+			added.wc_cp_select2_component_options();
 
 			added.find( '.tips, .help_tip' ).tipTip( {
 				'attribute' : 'data-tip',
@@ -845,24 +690,9 @@ jQuery( function($) {
 
 				$( '#bto_config_group_inner .group_show_filters input' ).change();
 
-				if ( wc_composite_admin_params.is_wc_version_gte_2_3 == 'yes' ) {
-
-					$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2();
-					$( '#bto_config_group_inner' ).wc_cp_select2_products();
-					$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2_component_options();
-
-				} else {
-
-				    $( '#bto_config_group_inner select.chosen_select, #bto_scenarios_inner select.chosen_select' ).chosen();
-
-				    $( '#bto_config_group_inner .bto_group_data .bto_selector select' ).each( function() {
-				    	$( this ).wc_cp_chosen_select_products();
-				    } );
-
-					$( '#bto_config_group_inner .bto_group_data .default_selector select.ajax_chosen_select_component_options, #bto_scenario_data select.ajax_chosen_select_component_options' ).each( function() {
-						$( this ).wc_cp_chosen_select_component_options();
-					} );
-				}
+				$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2();
+				$( '#bto_config_group_inner' ).wc_cp_select2_products();
+				$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2_component_options();
 
 				if ( post_response.length > 0 ) {
 					alert( post_response.join( '\n\n' ) );
