@@ -38,7 +38,6 @@ class WC_Composite_Products {
 	public $cart;
 	public $order;
 	public $display;
-	public $compatibility;
 
 	public function __construct() {
 
@@ -46,7 +45,7 @@ class WC_Composite_Products {
 		add_action( 'init', array( $this, 'init' ) );
 		add_action( 'admin_init', array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
-		add_filter( 'plugin_row_meta', array( $this, 'plugin_meta_links' ), 10 ,2 );
+
 	}
 
 	public function plugin_url() {
@@ -67,24 +66,11 @@ class WC_Composite_Products {
 			return false;
 		}
 
-		// Class containing core compatibility functions and filters
-		require_once( 'includes/class-wc-cp-core-compatibility.php' );
-
 		// Functions for 2.X back-compat
 		include_once( 'includes/wc-cp-functions.php' );
-
-		// Composite widget
-		include_once( 'includes/wc-cp-widget-functions.php' );
-
-		// Class containing extensions compatibility functions and filters
-		require_once( 'includes/class-wc-cp-compatibility.php' );
-		$this->compatibility = new WC_CP_Compatibility();
-
+		
 		// WP_Query wrapper for component option queries
 		require_once( 'includes/class-wc-cp-query.php' );
-
-		// Composited product wrapper
-		require_once( 'includes/class-wc-cp-product.php' );
 
 		// Composite product API
 		require_once( 'includes/class-wc-cp-api.php' );
@@ -93,8 +79,6 @@ class WC_Composite_Products {
 		// Composite product class
 		require_once( 'includes/class-wc-product-composite.php' );
 
-		// Stock manager
-		require_once( 'includes/class-wc-cp-stock-manager.php' );
 
 		// Admin functions and meta-boxes
 		if ( is_admin() ) {
@@ -153,61 +137,61 @@ class WC_Composite_Products {
 	 */
 	public function activate() {
 
-			global $wpdb;
+		global $wpdb;
 
-			$version = get_option( 'woocommerce_composite_products_version', false );
+		$version = get_option( 'woocommerce_composite_products_version', false );
 
-			if ( $version == false ) {
+		if ( $version == false ) {
 
-				$composite_type_exists = false;
+			$composite_type_exists = false;
 
-				$product_type_terms = get_terms( 'product_type', array( 'hide_empty' => false ) );
+			$product_type_terms = get_terms( 'product_type', array( 'hide_empty' => false ) );
 
-				foreach ( $product_type_terms as $product_type_term ) {
+			foreach ( $product_type_terms as $product_type_term ) {
 
-					if ( $product_type_term->name === 'bto' ) {
+				if ( $product_type_term->name === 'bto' ) {
 
-						$composite_type_exists = true;
-
-						// Check for existing 'composite' slug and if it exists, modify it
-						if ( $existing_term_id = term_exists( 'composite' ) )
-							$wpdb->update( $wpdb->terms, array( 'slug' => 'composite-b' ), array( 'term_id' => $existing_term_id ) );
-
-						// Update composite type term
-						wp_update_term( $product_type_term->term_id, 'product_type', array( 'slug' => 'composite', 'name' => 'composite' ) );
-
-						break;
-
-					} elseif ( $product_type_term->name === 'composite' ) {
-
-						$composite_type_exists = true;
-						break;
-					}
-
-				}
-
-				if ( ! $composite_type_exists ) {
+					$composite_type_exists = true;
 
 					// Check for existing 'composite' slug and if it exists, modify it
 					if ( $existing_term_id = term_exists( 'composite' ) )
 						$wpdb->update( $wpdb->terms, array( 'slug' => 'composite-b' ), array( 'term_id' => $existing_term_id ) );
 
-					wp_insert_term( 'composite', 'product_type' );
+					// Update composite type term
+					wp_update_term( $product_type_term->term_id, 'product_type', array( 'slug' => 'composite', 'name' => 'composite' ) );
+
+					break;
+
+				} elseif ( $product_type_term->name === 'composite' ) {
+
+					$composite_type_exists = true;
+					break;
 				}
 
-				add_option( 'woocommerce_composite_products_version', $this->version );
-
-				// Update from previous versions
-
-				// delete old option
-				delete_option( 'woocommerce_composite_products_active' );
-
-			} elseif ( version_compare( $version, $this->version, '<' ) ) {
-
-				update_option( 'woocommerce_composite_products_version', $this->version );
 			}
 
+			if ( ! $composite_type_exists ) {
+
+				// Check for existing 'composite' slug and if it exists, modify it
+				if ( $existing_term_id = term_exists( 'composite' ) )
+					$wpdb->update( $wpdb->terms, array( 'slug' => 'composite-b' ), array( 'term_id' => $existing_term_id ) );
+
+				wp_insert_term( 'composite', 'product_type' );
+			}
+
+			add_option( 'woocommerce_composite_products_version', $this->version );
+
+			// Update from previous versions
+
+			// delete old option
+			delete_option( 'woocommerce_composite_products_active' );
+
+		} elseif ( version_compare( $version, $this->version, '<' ) ) {
+
+			update_option( 'woocommerce_composite_products_version', $this->version );
 		}
+
+	}
 
 	/**
 	 * Deactivate extension.
@@ -217,23 +201,6 @@ class WC_Composite_Products {
 	public function deactivate() {
 
 		delete_option( 'woocommerce_composite_products_version' );
-	}
-
-	/**
-	 * Show row meta on the plugin screen.
-	 *
-	 * @param	mixed $links Plugin Row Meta
-	 * @param	mixed $file  Plugin Base file
-	 * @return	array
-	 */
-	public function plugin_meta_links( $links, $file ) {
-
-		if ( $file == plugin_basename( __FILE__ ) ) {
-			$links[] ='<a href="http://docs.woothemes.com/document/composite-products/">' . __( 'Docs', 'woocommerce-composite-products' ) . '</a>';
-			$links[] = '<a href="http://support.woothemes.com/">' . __( 'Support', 'woocommerce-composite-products' ) . '</a>';
-		}
-
-		return $links;
 	}
 	
 }
