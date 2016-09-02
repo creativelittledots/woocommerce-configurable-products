@@ -446,7 +446,8 @@ class WC_Product_Composite extends WC_Product {
 				'sku_default' => $component_data['affect_sku_default'],
 				'options' => $options,
 				'assigned_ids' => $component_data['assigned_ids'],
-				'use_tag_numbers' => $component_data['tag_numbers'] === 'yes' ? true : false
+				'use_tag_numbers' => $component_data['tag_numbers'] === 'yes' ? true : false,
+				'sovereign' => $component_data['sovereign'] === 'yes' ? true : false
 			], $component_id, $this );
 			
 		}

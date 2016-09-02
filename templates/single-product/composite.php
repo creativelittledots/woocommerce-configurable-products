@@ -35,7 +35,7 @@ global $woocommerce_composite_products;
 							
 				<option class="empty none" value="0" rv-text="component:empty_text"></option>
 					
-				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:title | append ' +' | append option:formatted_price" rv-on-change="option.select" rv-disabled="option:available | !"></option>
+				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:title | append ' +' | append option:formatted_price" rv-disabled="option:available | !"></option>
 					
 			</select> 
 			

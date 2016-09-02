@@ -67,7 +67,8 @@ class WC_CP_Admin {
 		// Advanced component configuration
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_default_option' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_recommended_option' ), 6, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 6, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 7, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_sovereign_option' ), 8, 3 );
 		
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
@@ -128,8 +129,8 @@ class WC_CP_Admin {
 		<div class="scenario_action_compat_group" >
 			<div class="form-field">
 				<label for="scenario_action_compat_group_<?php echo $id; ?>">
-					<?php echo __( 'Add dependency', 'woocommerce-composite-products' ); ?>
-					<img class="help_tip" data-tip="<?php echo __( 'Creates a group of dependent selections from the products/variations included in this Scenario. Any combinations not included in this group will be disabled unless permitted by other Scenarios.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					<?php echo __( 'Active', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'Toggle this Scenario on or off', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label>
 				<input type="checkbox" class="checkbox"<?php echo ( $defines_compat_group == 'yes' ? ' checked="checked"' : '' ); ?> name="bto_scenario_data[<?php echo $id; ?>][scenario_actions][compat_group][is_active]" <?php echo ( $defines_compat_group == 'yes' ? ' value="1"' : '' ); ?> />
 			</div>
@@ -1138,6 +1139,12 @@ class WC_CP_Admin {
 				} else {
 					$bto_data[ $group_id ][ 'tag_numbers' ] = 'no';
 				}
+				
+				if( isset( $post_data['sovereign'] ) ) {
+					$bto_data[ $group_id ][ 'sovereign' ] = 'yes';
+				} else {
+					$bto_data[ $group_id ][ 'sovereign' ] = 'no';
+				}
 
 				// Invalidate query cache
 				if ( class_exists( 'WC_Cache_Helper' ) ) {
@@ -1895,6 +1902,32 @@ class WC_CP_Admin {
 				</label>
 				
 				<input type="checkbox" class="checkbox tag_numbers" name="bto_data[<?php echo $id; ?>][tag_numbers]" <?php echo isset( $data[ 'tag_numbers' ] ) ? checked($data[ 'tag_numbers' ], 'yes', false) : ''; ?> />
+				
+			</div>
+			
+		</div>
+		
+		<?php
+    	
+	}
+	
+	public function component_config_sovereign_option($id, $data, $product_id) {
+    	
+    	?>
+		
+		<div class="option_style">
+			
+			<div class="form-field">
+		
+				<label class="bundle_group_label">
+					
+					<?php _e( 'Make Sovereign', 'woocommerce-composite-products' ); ?>
+					
+					<img class="help_tip" data-tip="<?php echo __( 'Check this box if you would this component\'s options to always be available in spite of scenarios', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					
+				</label>
+				
+				<input type="checkbox" class="checkbox sovereign" name="bto_data[<?php echo $id; ?>][sovereign]" <?php echo isset( $data[ 'sovereign' ] ) ? checked($data[ 'sovereign' ], 'yes', false) : ''; ?> />
 				
 			</div>
 			

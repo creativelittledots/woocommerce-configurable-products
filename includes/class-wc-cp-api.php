@@ -72,28 +72,23 @@ class WC_CP_API {
 
 		// Store the 'actions' associated with every scenario
 		foreach ( $scenario_ids as $scenario_id ) {
-			
-			$scenarios[ $scenario_id ] = array();
-			
-			$scenarios[ $scenario_id ]['id'] = $scenario_id;
-
-			$scenarios[ $scenario_id ][ 'actions' ] = array();
 
 			if ( isset( $bto_scenario_meta[ $scenario_id ][ 'scenario_actions' ] ) ) {
 
-				$actions = array();
-
 				foreach ( $bto_scenario_meta[ $scenario_id ][ 'scenario_actions' ] as $action_name => $action_data ) {
+    				
 					if ( isset( $action_data[ 'is_active' ] ) && $action_data[ 'is_active' ] === 'yes' ) {
-						$actions[] = $action_name;
+    					
+						$scenarios[ $scenario_id ] = array(
+    						'id' => $scenario_id
+						);
+						
 					}
+					
 				}
 
-				$scenarios[ $scenario_id ][ 'actions' ] = $actions;
-
-			} else {
-				$scenarios[ $scenario_id ][ 'actions' ] = array( 'compat_group' );
 			}
+			
 		}
 
 		// Find which components in every scenario are 'non shaping components' (marked as unrelated)
@@ -104,8 +99,11 @@ class WC_CP_API {
 			foreach ( $bto_data as $group_id => $group_data ) {
 
 				if ( isset( $scenario_single_meta[ 'modifier' ][ $group_id ] ) && $scenario_single_meta[ 'modifier' ][ $group_id ] === 'masked' ) {
+    				
 					$scenarios[ $scenario_id ][ 'masked_components' ][] = ( string ) $group_id;
+					
 				}
+				
 			}
 		}
 		
