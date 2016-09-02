@@ -20,9 +20,9 @@ class WC_CP_Cart {
 		// Preserve data in cart
 		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'wc_cp_get_cart_data_from_session' ), 10, 2 );
 		
-		add_filter( 'woocommerce_product_weight', array($this, 'wc_cp_ext_get_product_weight'), 10, 2);
-		
 		add_filter( 'woocommerce_composite_get_price', array($this, 'wc_cp_get_price'), 10, 2 );
+		
+		add_filter( 'woocommerce_composite_product_get_weight', array($this, 'wc_cp_get_weight'), 10, 2 );
 			
 	}
 
@@ -90,6 +90,22 @@ class WC_CP_Cart {
 		return $price;
 		
 	}
+	
+	public function wc_cp_get_weight($weight, $product) {
+		
+		foreach(WC()->cart->cart_contents as $item) {
+		
+			if( $product->id == $item['data']->id ) {
+				
+				return $weight = ! empty( $item['composite']['weight'] ) ? $item['composite']['weight'] : $weight;
+				
+			}
+			
+		}
+		
+		return $weight;
+		
+	}
 
 	/**
 	 * Load all composite-related session data.
@@ -104,26 +120,5 @@ class WC_CP_Cart {
 
 		return $cart_item;
 	}
-	
-	function wc_cp_ext_get_product_weight($weight, $product) {
-		
-		if( is_cart() && $product->is_type('composite') ) {
-			
-			$cart_item_key = WC()->cart->generate_cart_id($product->id);
-			
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 
-				if($cart_item['product_id'] == $product->id ){
-				
-					$weight = $cart_item['weight'];
-				
-				}
-			 	
-			}
-			
-		}
-		
-		return $weight;
-		
-	}
 }

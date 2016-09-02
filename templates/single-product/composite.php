@@ -15,7 +15,7 @@ global $woocommerce_composite_products;
 
 ?>
 
-<form method="post" class="js-composite-product-form js-composite-product-bind" data-abide="ajax">
+<form method="post" class="js-composite-product-form js-composite-product-bind pd-v-1" data-abide="ajax">
 
 	<div class="component" rv-each-component="product:components">
 
@@ -33,9 +33,9 @@ global $woocommerce_composite_products;
 			
 			<select class="component_options_select" rv-if="component:style | = 'dropdowns'" rv-name="component:id" rv-sku-order="component:sku_order" rv-on-change="component.select" rv-required="component:optional | !" rv-value="component:first">
 							
-				<option class="empty none" rv-value="0" rv-text="component:empty_text"></option>
+				<option class="empty none" value="0" rv-text="component:empty_text"></option>
 					
-				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:display" rv-on-change="option.select" rv-disabled="option:available | !"></option>
+				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:title | append ' +' | append option:formatted_price" rv-on-change="option.select" rv-disabled="option:available | !"></option>
 					
 			</select> 
 			
@@ -51,7 +51,7 @@ global $woocommerce_composite_products;
 				
 				<li rv-each-option="component:options" rv-class-disabled="option:available | !">
 				
-					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="option:selected" rv-disabled="option:available | !" />
+					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="component:selected" rv-disabled="option:available | !" />
 					
 					<label rv-html="option:display" rv-for="'component_' | append component:id | append '_option_' | append option.id"></label>
 					

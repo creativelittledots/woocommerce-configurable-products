@@ -71,6 +71,7 @@ class WC_CP_Admin {
 		
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
+		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_default' ), 11, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_options' ), 15, 3 );
 		add_action( 'woocommerce_composite_component_admin_price_html', array( $this, 'component_price_options' ), 5, 3 );
 
@@ -670,6 +671,13 @@ class WC_CP_Admin {
 						<img class="help_tip" data-tip="<?php echo __( 'Check this box if would like to build a SKU from the components', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					</label>
 					<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php checked( get_post_meta($post->ID, '_bto_build_sku', true), 'yes' ); ?> />
+				</p>
+				<p class="form-field group_bto_build_sku" <?php echo get_post_meta($post->ID, '_bto_build_sku', true) != 'yes' ? 'style="display: none;"' : ''; ?>>
+					<label class="bundle_group_label">
+						<?php _e( 'SKU Start', 'woocommerce-composite-products' ); ?>
+						<img class="help_tip" data-tip="<?php echo __( 'Please enter a start SKU for use when building the SKU', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					</label>
+					<input type="text" name="bto_extension[bto_sku_start]" value="<?php echo get_post_meta($post->ID, '_bto_sku_start', true); ?>" id="bto_sku_start" />
 				</p>
 			</div>
 			<div class="options_group config_group bto_clearfix">
@@ -1977,6 +1985,32 @@ class WC_CP_Admin {
 				</label>
 				
 				<input type="number" min="0" name="bto_data[<?php echo $id; ?>][affect_sku_order]" value="<?php echo isset($data['affect_sku_order']) ? $data['affect_sku_order'] : ''; ?>" />
+				
+			</div>
+			
+		</div>
+		
+		<?php
+		
+	}
+	
+	public function component_sku_sku_default($id, $data, $product_id) {
+		
+		?>
+		
+		<div class="group_affected_by_sku group_affect_sku_default" <?php echo get_post_meta($product_id, '_bto_build_sku', true) != 'yes' || ! isset( $data[ 'affect_sku' ] ) || $data[ 'affect_sku' ] != 'yes' ? 'style="display: none;"' : ''; ?>>
+	
+			<div class="form-field">
+		
+				<label class="bundle_group_label">
+					
+					<?php _e( 'SKU Default', 'woocommerce-composite-products' ); ?>
+					
+					<img class="help_tip" data-tip="<?php echo __( 'Enter an a default sku for this component', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					
+				</label>
+				
+				<input type="text"  name="bto_data[<?php echo $id; ?>][affect_sku_default]" value="<?php echo isset($data['affect_sku_default']) ? $data['affect_sku_default'] : ''; ?>" />
 				
 			</div>
 			

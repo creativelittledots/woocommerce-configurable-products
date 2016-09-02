@@ -332,11 +332,19 @@ jQuery( function($) {
 			
 			jQuery(".group_affect_sku_order").slideUp(300);
 			
+			jQuery(".group_bto_build_sku").slideUp(300);
+			
 		}
 		
-		if($(this).is(':checked') && jQuery(".group_affect_sku").find('input:checkbox').is(':checked')) {
+		if($(this).is(':checked')) {
+    		
+    		jQuery(".group_bto_build_sku").slideDown(300);
+    		
+            if(jQuery(".group_affect_sku").find('input:checkbox').is(':checked')) {
 			
-			jQuery(".group_affect_sku_order").slideDown(300);
+			    jQuery(".group_affect_sku_order").slideDown(300);
+			    
+			 }
 			
 		}
 		
