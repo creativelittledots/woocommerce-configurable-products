@@ -79,9 +79,13 @@ class WC_CP_Display {
 		wp_enqueue_script( 'rivets-backbone' );
 		
 		$product_data = apply_filters( 'wc_cp_product_data', array(
+    		'id' => $product->id,
+    		'min_price' => (float) $product->get_min_price(),
+    		'min_price_incl_tax' => (float) $product->get_min_price_including_tax(),
 			'base_price' => (float) $product->get_base_price(),
-			'base_sku'  => $product->get_sku(),
-			'base_weight'  => (float) $product->get_weight(),
+			'base_price_incl_tax' => (float) $product->get_base_price_including_tax(),
+			'base_sku'  => $product->get_base_sku() ? $product->get_base_sku() : $product->get_sku(),
+			'base_weight'  => (float) $product->get_base_weight(),
 			'build_sku' => (int) $product->get_build_sku(),
 			'components' => $product->get_composite_data(),
 			'scenarios' => array_values( $product->get_composite_scenario_data() )

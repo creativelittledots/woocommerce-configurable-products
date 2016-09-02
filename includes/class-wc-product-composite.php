@@ -23,7 +23,6 @@ class WC_Product_Composite extends WC_Product {
 	private $component_options               = array();
 
 	public $min_price;
-	public $max_price;
 
 	public $base_price;
 	public $base_regular_price;
@@ -31,15 +30,13 @@ class WC_Product_Composite extends WC_Product {
 	private $price_meta;
 
 	public $min_composite_price;
-	public $max_composite_price;
 	public $min_composite_regular_price;
-	public $max_composite_regular_price;
+	public $min_composite_price_incl_tax;
+	public $min_composite_price_excl_tax;
 
 	public function __construct( $product ) {
 
 		$this->product_type = 'composite';
-		
-		$this->supports[]   = 'ajax_add_to_cart';
 
 		parent::__construct( $product );
 
@@ -49,7 +46,6 @@ class WC_Product_Composite extends WC_Product {
 		$this->selections_style     = get_post_meta( $this->id, '_bto_selection_mode', true );
 
 		$this->min_price            = get_post_meta( $this->id, '_min_composite_price', true );
-		$this->max_price            = get_post_meta( $this->id, '_max_composite_price', true );
 
 		$this->price_meta           = (double) get_post_meta( $this->id, '_price', true );
 
@@ -60,6 +56,7 @@ class WC_Product_Composite extends WC_Product {
 		$this->base_price           = empty( $base_price ) ? 0.0 : (double) $base_price;
 		$this->base_regular_price   = empty( $base_regular_price ) ? 0.0 : (double) $base_regular_price;
 		$this->base_sale_price      = empty( $base_sale_price ) ? 0.0 : (double) $base_sale_price;
+		$this->base_weight 			= $this->weight;
 
 		if ( $this->is_priced_per_product() ) {
 			$this->price = $this->get_base_price();
@@ -73,14 +70,38 @@ class WC_Product_Composite extends WC_Product {
 	 * @return double
 	 */
 	public function get_price() {
+		
+		return (float) apply_filters( 'woocommerce_composite_get_price', $this->get_raw_price(), $this );
+		
+	}
+	
+	public function get_base_weight() {
+		
+		return apply_filters( 'woocommerce_composite_product_base_weight', apply_filters( 'woocommerce_composite_product_get_base_weight', $this->base_weight ? $this->base_weight : '' ), $this );
+		
+	}
+	
+	public function get_weight() {
+		
+		return apply_filters( 'woocommerce_composite_product_weight', apply_filters( 'woocommerce_composite_product_get_weight', $this->weight ? $this->weight : '' ), $this );
+		
+	}
+	
+	/**
+	 * Overrides get_price to return base price in static price mode.
+	 * In per-product pricing mode, get_price() returns the base composite price.
+	 *
+	 * @return double
+	 */
+	public function get_raw_price() {
 
 		if ( $this->is_priced_per_product() ) {
 			
-			return (float) apply_filters( 'woocommerce_composite_get_price', $this->get_base_price(), $this );
+			return $this->get_base_price();
 			
 		} else {
 			
-			return (float) parent::get_price();
+			return parent::get_price();
 			
 		}
 		
@@ -93,13 +114,24 @@ class WC_Product_Composite extends WC_Product {
 	 */
 	public function get_regular_price() {
 
+		return (float) apply_filters( 'woocommerce_composite_get_regular_price', $this->get_raw_regular_price(), $this );
+		
+	}
+	
+	/**
+	 * Overrides get_regular_price to return base price in static price mode.
+	 *
+	 * @return double
+	 */
+	public function get_raw_regular_price() {
+
 		if ( $this->is_priced_per_product() ) {
-			
-			return (float) apply_filters( 'woocommerce_composite_get_regular_price', $this->get_base_regular_price(), $this );
+    		
+    		return $this->get_base_regular_price();
 			
 		} else {
 			
-			return (float) parent::get_regular_price();
+			return parent::get_regular_price();
 			
 		}
 		
@@ -121,6 +153,17 @@ class WC_Product_Composite extends WC_Product {
 			return false;
 			
 		}
+	}
+	
+	/**
+	 * Get composite base price including tax.
+	 *
+	 * @return double
+	 */
+	public function get_base_price_including_tax() {
+
+        return $this->get_price_including_tax( 1, $this->get_base_price() );
+		
 	}
 
 	/**
@@ -153,6 +196,17 @@ class WC_Product_Composite extends WC_Product {
 	}
 	
 	/**
+	 * Get composite base sku.
+	 *
+	 * @return string
+	 */
+	public function get_base_sku() {
+
+		return apply_filters( 'woocommerce_composite_get_base_sku', $this->bto_sku_start, $this );
+		
+	}
+	
+	/**
 	 * True if the composite is in sync with its contents.
 	 *
 	 * @return boolean
@@ -163,7 +217,7 @@ class WC_Product_Composite extends WC_Product {
 	}
 	
 	/**
-	 * Calculates min and max prices based on the composited product data.
+	 * Calculates min prices based on the composited product data.
 	 *
 	 * @return void
 	 */
@@ -174,8 +228,8 @@ class WC_Product_Composite extends WC_Product {
 		if ( empty( $this->composite_data ) )
 			return false;
 
-		// Initialize min/max price information
-		$this->min_composite_price = $this->max_composite_price = $this->min_composite_regular_price = $this->max_composite_regular_price = '';
+		// Initialize min price information
+		$this->min_composite_price = $this->min_composite_regular_price = '';
 
 		// Initialize component options
 		foreach ( $this->get_composite_data() as $component_id => $component_data ) {
@@ -184,27 +238,101 @@ class WC_Product_Composite extends WC_Product {
 
 			// Do not pass any ordering args to speed up the query - ordering and filtering is done when calling get_current_component_options()
 			$this->component_options[ $component_id ]   = $woocommerce_composite_products->api->get_component_options( $component_data );
-			
 		}
 
-		// Use these filters if get_hide_price_html() returns false but you still want to include the composite in price filter widget min/max results
-		$this->min_composite_price = apply_filters( 'woocommerce_min_composite_price_meta', $this->min_composite_price, $this );
-		$this->max_composite_price = apply_filters( 'woocommerce_max_composite_price_meta', $this->max_composite_price, $this );
+		if ( $this->is_priced_per_product() ) {
 
-		// Save modified min/max price meta to include product in price filter widget results
+			foreach ( $this->get_composite_data() as $component_id => $component_data ) {
+
+				$item_price = '';
+
+				$item_regular_price = '';
+				
+				$item_price_incl = '';
+				
+				$item_price_excl = '';
+
+				// No options available
+				if ( empty( $component_data['options'] ) || $component_data['optional'] )
+					continue;
+
+				foreach ( $component_data['options'] as $option ) {
+
+					// Update component prices
+					$item_price = $item_price !== '' ? min( $item_price, $option['price'] ) : $option['price'];
+
+					$item_regular_price = $item_regular_price !== '' ? min( $item_regular_price, $option['regular_price'] ) : $option['regular_price'];
+
+					// Price incl tax
+					$item_price_incl = $item_price_incl !== '' ? min( $item_price_incl, $option['price_incl_tax'] ) : $option['price_incl_tax'];
+					
+					// Price excl tax
+					$item_price_excl = $item_price_excl !== '' ? min( $item_price_excl, $option['price_excl_tax'] ) : $option['price_excl_tax'];
+					
+				}
+
+				$this->min_composite_price          = $this->min_composite_price + $item_price;
+				$this->min_composite_regular_price  = $this->min_composite_regular_price + $item_regular_price;
+				$this->min_composite_price_incl_tax = $this->min_composite_price_incl_tax + $item_price_incl;
+				$this->min_composite_price_excl_tax = $this->min_composite_price_excl_tax + $item_price_excl;
+				
+			}
+			
+			$composite_price = $this->get_raw_price();
+			$composite_regular_price = $this->get_raw_regular_price();
+			$composite_price_incl = $this->get_price_including_tax( 1, $composite_price );
+			$composite_price_excl = $this->get_price_excluding_tax( 1, $composite_price );
+
+			$this->min_composite_price          = $composite_price + $this->min_composite_price;
+			$this->min_composite_regular_price  = $composite_regular_price + $this->min_composite_regular_price;
+			$this->min_composite_price_incl_tax = $composite_price_incl + $this->min_composite_price_incl_tax;
+			$this->min_composite_price_excl_tax = $composite_price_excl + $this->min_composite_price_excl_tax;
+
+			if ( $this->price_meta != $this->min_composite_price && ! is_admin() ) {
+				update_post_meta( $this->id, '_price', $this->min_composite_price );
+			}
+
+		} else {
+
+			$this->min_composite_price = $this->get_raw_price();
+			$this->min_composite_regular_price = $this->get_raw_regular_price();
+			$this->min_composite_price_incl_tax = $this->get_price_including_tax( 1, $this->min_composite_price );
+			$this->min_composite_price_excl_tax = $this->get_price_excluding_tax( 1, $this->min_composite_price );
+
+		}
+
+		// Use these filters if get_hide_price_html() returns false but you still want to include the composite in price filter widget min results
+		$this->min_composite_price = apply_filters( 'woocommerce_min_composite_price_meta', $this->min_composite_price, $this );
+
+		// Save modified min price meta to include product in price filter widget results
 		if ( $this->min_price != $this->min_composite_price ) {
 			update_post_meta( $this->id, '_min_composite_price', $this->min_composite_price );
 		}
 
-		if ( $this->max_price != $this->max_composite_price ) {
-			update_post_meta( $this->id, '_max_composite_price', $this->max_composite_price );
-		}
-
 		$this->is_synced = true;
+		
+	}
+	
+	public function get_min_price() {
+    	
+    	if ( ! $this->is_synced() )
+			$this->sync_composite();
+    	
+    	return $this->min_composite_price;
+    	
+	}
+	
+	public function get_min_price_including_tax() {
+    	
+    	if ( ! $this->is_synced() )
+			$this->sync_composite();
+    	
+    	return $this->min_composite_price_incl_tax;
+    	
 	}
 
 	/**
-	 * Returns range style html price string without min and max.
+	 * Returns range style html price string without min.
 	 *
 	 * @param  mixed    $price    default price
 	 * @return string             overridden html price string (old style)
@@ -286,12 +414,17 @@ class WC_Product_Composite extends WC_Product {
 					
 					$terms        = get_the_terms( $product_id, 'product_type' );
 					$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
+                    
+                    $price = (float) ! empty( $component_data['price_options'][$product_id] ) ? $component_data['price_options'][$product_id] : $product->get_price();
 				
 					$options[] = array(
 						'id' => $product_id,
 						'title' => $product->get_title(),
-						'price' => (float) $product->get_price(),
-						'sku' => $product->get_sku(),
+						'price' => $price,
+						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : $product->get_regular_price(),
+						'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
+						'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
+						'sku' => ! empty( $component_data['sku_options'][$product_id] ) ? $component_data['sku_options'][$product_id] : $product->get_sku(),
 						'weight' => (float) $product->get_weight(),
 						'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_product( $composite_scenario_meta, $component_id, $product_id, '', $product_type ),
 					);
@@ -304,12 +437,13 @@ class WC_Product_Composite extends WC_Product {
 				'id' => $component_data['component_id'],
 				'style' => ! empty( $component_data['option_style'] ) ? $component_data['option_style'] : $this->selections_style,
 				'title' => $component_data['title'],
-				'description' => $component_data['description'],
+				'description' => htmlspecialchars_decode($component_data['description']),
 				'optional' => $component_data['optional'] === 'yes' ? true : false,
 				'default_id' => $component_data['default_id'] ? $component_data['default_id'] : 0,
 				'recommended_id' => ! empty( $component_data['recommended_id'] ) ? $component_data['recommended_id'] : 0,
 				'affect_sku' => $component_data['affect_sku'],
 				'sku_order' => $component_data['affect_sku_order'],
+				'sku_default' => $component_data['affect_sku_default'],
 				'options' => $options,
 				'assigned_ids' => $component_data['assigned_ids'],
 				'use_tag_numbers' => $component_data['tag_numbers'] === 'yes' ? true : false
