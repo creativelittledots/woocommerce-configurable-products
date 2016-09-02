@@ -106,8 +106,12 @@ jQuery(document).ready(function($) {
 			tag_number: '',
 			recommended_id: 0,
 			default_id: 0,
+<<<<<<< HEAD
 			updating: false,
 			sovereign: false,
+=======
+			updating: false
+>>>>>>> origin/NewProd
 		},
 		is_style: function(style) {
 			return this.get('style') == style;	
@@ -388,7 +392,11 @@ jQuery(document).ready(function($) {
 				
 				component.get('options').each(function(option) {
 					
+<<<<<<< HEAD
 					if( active_scenarios.length && ! component.get('sovereign') ) {
+=======
+					if( active_scenarios.length ) {
+>>>>>>> origin/NewProd
 							
 						var available = false;
 						
