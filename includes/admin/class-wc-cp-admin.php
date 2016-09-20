@@ -87,8 +87,19 @@ class WC_CP_Admin {
 		add_action( 'admin_post_export_scenarios', array($this, 'export_scenarios') ); // For Export Scenarios
 		add_action( 'woocommerce_process_product_meta_composite', array($this, 'import_scenarios'), 15); // For Import Scenarios
 		add_action( 'post_edit_form_tag', array($this, 'add_enctype_to_edit_form') ); // For Import Scenarios
+		
+		
+        add_filter( 'woocommerce_product_data_tabs', array($this, 'composite_product_tabs') );
 			
 	}
+	
+	function composite_product_tabs( $tabs ) {
+
+    	$tabs['inventory']['class'] = [];
+
+    	return $tabs;
+    	
+    }
 
 	/**
 	 * Delete component options query cache on product save.
@@ -673,7 +684,7 @@ class WC_CP_Admin {
 					</label>
 					<input type="checkbox" name="bto_extension[bto_build_sku]" value="yes" id="bto_build_sku" <?php checked( get_post_meta($post->ID, '_bto_build_sku', true), 'yes' ); ?> />
 				</p>
-				<p class="form-field group_bto_build_sku" <?php echo get_post_meta($post->ID, '_bto_build_sku', true) != 'yes' ? 'style="display: none;"' : ''; ?>>
+				<p class="form-field group_affect_sku" <?php echo get_post_meta($post->ID, '_bto_build_sku', true) != 'yes' ? 'style="display: none;"' : ''; ?>>
 					<label class="bundle_group_label">
 						<?php _e( 'SKU Start', 'woocommerce-composite-products' ); ?>
 						<img class="help_tip" data-tip="<?php echo __( 'Please enter a start SKU for use when building the SKU', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
@@ -1122,6 +1133,12 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'affect_sku_order' ] = '';
 				}
 				
+				if ( isset( $post_data[ 'affect_sku_default' ] ) ) {
+					$bto_data[ $group_id ][ 'affect_sku_default' ] = $post_data[ 'affect_sku_default' ];
+				} else {
+					$bto_data[ $group_id ][ 'affect_sku_default' ] = '';
+				}
+				
 				if( isset ( $post_data['sku_options'] ) ) {
 					$bto_data[ $group_id ][ 'sku_options' ] = $post_data['sku_options'];
 				} else {
@@ -1392,6 +1409,12 @@ class WC_CP_Admin {
 					update_post_meta($post_id, '_' . $key, $val);
 				}
 			}
+			
+			if( ! isset( $_REQUEST['bto_extension']['bto_build_sku'] ) ) {
+    			
+    			update_post_meta($post_id, '_bto_build_sku', '');
+    			
+			} 
 
 			// Initialize and save price meta
 			$composite = wc_get_product( $post_id );

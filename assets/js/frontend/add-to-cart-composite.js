@@ -43,13 +43,20 @@ jQuery(document).ready(function($) {
 			is_recommended: 0,
 			available: false,
 			scenarios: [],
-			selected: 0
+			selected: 0,
+			actual_selected: 0,
 		},
 		display: function() {
     		this.set('display', this.get('title') + ( this.get('formatted_price') ? ' <strong>[+' + this.get('formatted_price') + ']</strong>' : '' ) + ( this.get('is_recommended') ? ' <em>Recommended</em>' : '' ) );
 		},
 		select: function() {
-			this.set('selected', this.get('id'));
+			if(this.get('actual_selected') != this.get('id')) {
+				this.set('selected', this.get('id'));
+				this.set('actual_selected', this.get('id'));
+			} else {
+				this.set('selected', 0);
+				this.set('actual_selected', 0);
+			}
 		},
 		deselect: function() {
     		if(!this.get('available')) {
@@ -368,7 +375,11 @@ jQuery(document).ready(function($) {
 					
 				} else {
     				
-    				sku[component.get('sku_order')] = component.get('sku_default');
+    				if( product.get('build_sku') && component.get('affect_sku') ) {
+    				
+    				    sku[component.get('sku_order')] = component.get('sku_default');
+    				    
+    				}
 							
 					if( ! component.get('optional') ) {
 						
@@ -433,6 +444,7 @@ jQuery(document).ready(function($) {
 			this.set('weight', weight.toFixed(1));
 			this.set('errors', errors);
 			this.set('selections', no_of_selections);
+			
 			this.set('sku', sku.join(''));
 			
 			form.unblock();

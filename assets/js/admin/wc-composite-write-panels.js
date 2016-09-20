@@ -326,33 +326,39 @@ jQuery( function($) {
 	
 	$('#bto_build_sku').on('click', function() {
 		
-		jQuery(".group_affect_sku").slideToggle(300);
-		
-		if(!$(this).is(':checked')) {
+		if( $(this).is(':checked') ) {
 			
-			jQuery(".group_affect_sku_order").slideUp(300);
+			jQuery('.group_affect_sku').slideDown(300);
 			
-			jQuery(".group_bto_build_sku").slideUp(300);
+            jQuery('.group_affect_sku').each(function() {
+    			
+    			if( $(this).find('input:checkbox').is(':checked') ) {
+    			
+        			$(this).siblings('.group_affected_by_sku').slideDown(300);
+        			
+    			} 
+    			 
+            });
 			
-		}
-		
-		if($(this).is(':checked')) {
+		} else {
     		
-    		jQuery(".group_bto_build_sku").slideDown(300);
+    		jQuery(".group_affect_sku").slideUp(300).siblings('.group_affected_by_sku').slideUp(300);
     		
-            if(jQuery(".group_affect_sku").find('input:checkbox').is(':checked')) {
-			
-			    jQuery(".group_affect_sku_order").slideDown(300);
-			    
-			 }
-			
 		}
 		
 	});
 	
 	$('.affect_sku').on('click', function() {
+    	
+    	if( $(this).is(':checked') ) {
 		
-		jQuery(this).parents('.group_affect_sku').siblings('.group_affected_by_sku').slideToggle(300);
+		    jQuery(this).parents('.group_affect_sku').siblings('.group_affected_by_sku').slideDown(300);
+		            
+        } else {
+            
+            jQuery(this).parents('.group_affect_sku').siblings('.group_affected_by_sku').slideUp(300);
+            
+        }
 		
 	});
 

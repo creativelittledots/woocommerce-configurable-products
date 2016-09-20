@@ -1,7 +1,6 @@
 <?php
 /*
-* Plugin Name: WooCommerce Composite Products Extended
-* Plugin URI: http://www.woothemes.com/products/composite-products/
+* Plugin Name: WooCommerce Configurable Products
 * Description: Create complex, configurable product kits and let your customers build their own, personalized versions. Extends the Woocommerce Composite Products Plugin to Allow Radio Box as an Option Style.
 * Version: 1.0.0
 * Author: Creative Little Dots

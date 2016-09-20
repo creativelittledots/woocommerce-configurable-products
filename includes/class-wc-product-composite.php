@@ -406,6 +406,22 @@ class WC_Product_Composite extends WC_Product {
 
 		foreach ( $this->composite_data as $component_id => $component_data ) {
 			
+			$component_data = array_merge(array(
+				'id' => null,
+				'option_style' => $this->selections_style,
+				'title' => '',
+				'description' => '',
+				'optional' => 'yes',
+				'default_id' => 0,
+				'recommended_id' => 0,
+				'affect_sku' => 0,
+				'affect_sku_order' => 0,
+				'affect_sku_default' => '',
+				'assigned_ids' => array(),
+				'tag_numbers' => 'no',
+				'sovereign' => 'no'
+			), $component_data);
+			
 			$options = array();
 			
 			foreach($component_data['assigned_ids'] as $product_id) {
@@ -435,12 +451,12 @@ class WC_Product_Composite extends WC_Product {
 			
 			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
 				'id' => $component_data['component_id'],
-				'style' => ! empty( $component_data['option_style'] ) ? $component_data['option_style'] : $this->selections_style,
+				'style' => $component_data['option_style'] ? $component_data['option_style'] : $this->selections_style,
 				'title' => $component_data['title'],
-				'description' => htmlspecialchars_decode($component_data['description']),
+				'description' => htmlspecialchars_decode( $component_data['description'] ),
 				'optional' => $component_data['optional'] === 'yes' ? true : false,
-				'default_id' => $component_data['default_id'] ? $component_data['default_id'] : 0,
-				'recommended_id' => ! empty( $component_data['recommended_id'] ) ? $component_data['recommended_id'] : 0,
+				'default_id' => $component_data['default_id'],
+				'recommended_id' => $component_data['recommended_id'],
 				'affect_sku' => $component_data['affect_sku'],
 				'sku_order' => $component_data['affect_sku_order'],
 				'sku_default' => $component_data['affect_sku_default'],
