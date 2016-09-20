@@ -431,7 +431,7 @@ class WC_Product_Composite extends WC_Product {
 					$terms        = get_the_terms( $product_id, 'product_type' );
 					$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
                     
-                    $price = (float) ! empty( $component_data['price_options'][$product_id] ) ? $component_data['price_options'][$product_id] : $product->get_price();
+                    $price = (float) ! empty( $component_data['price_options'][$product_id] ) ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$product_id], $product, $this ) : $product->get_price();
 				
 					$options[] = array(
 						'id' => $product_id,
