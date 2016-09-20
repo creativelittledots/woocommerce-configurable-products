@@ -42,13 +42,10 @@ class WC_CP_Cart {
 			
 			$cart_item['data']->variation_id = 999;
 			
-			
-			$cart_item['composite']['weight'] = ! empty( $cart_item['composite']['weight'] ) ? $cart_item['composite']['weight'] : ( ! empty( $_REQUEST['weight'] ) ? $_REQUEST['weight'] : $item['data']->weight );
-			
 			$cart_item['composite']['price'] = ! empty( $cart_item['composite']['price'] ) ? $cart_item['composite']['price'] : ( ! empty( $_REQUEST['price'] ) ? $_REQUEST['price'] : $item['data']->price );
 			
 			
-			
+			$cart_item['variation']['Weight'] = ! empty( $cart_item['variation']['Weight'] ) ? $cart_item['variation']['Weight'] : ( ! empty( $_REQUEST['weight'] ) ? $_REQUEST['weight'] : $item['data']->weight );
 			$cart_item['variation']['SKU'] = ! empty( $cart_item['variation']['SKU'] ) ? $cart_item['variation']['SKU'] : ( ! empty( $_REQUEST['product_sku'] ) ? $_REQUEST['product_sku'] : '' );
 			
 			if( ! empty( $_REQUEST['selections'] ) && is_array( $_REQUEST['selections'] ) ) {
@@ -97,7 +94,7 @@ class WC_CP_Cart {
 		
 			if( $product->id == $item['data']->id ) {
 				
-				return $weight = ! empty( $item['composite']['weight'] ) ? $item['composite']['weight'] : $weight;
+				return $weight = ! empty( $item['variation']['Weight'] ) ? $item['variation']['Weight'] : $weight;
 				
 			}
 			
