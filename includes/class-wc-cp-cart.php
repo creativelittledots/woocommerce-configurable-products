@@ -33,7 +33,7 @@ class WC_CP_Cart {
 	 * @param  string $cart_item_key
 	 * @return array
 	 */
-	function wc_cp_add_cart_item_filter( $cart_item, $cart_item_key ) {
+	public function wc_cp_add_cart_item_filter( $cart_item, $cart_item_key ) {
 
 		// Get product type
 		$product = $cart_item['data'];
@@ -42,10 +42,9 @@ class WC_CP_Cart {
 			
 			$cart_item['data']->variation_id = 999;
 			
-			$cart_item['composite']['price'] = ! empty( $cart_item['composite']['price'] ) ? $cart_item['composite']['price'] : ( ! empty( $_REQUEST['price'] ) ? $_REQUEST['price'] : $item['data']->price );
+			$cart_item['composite']['price'] = str_replace( ',', '', ! empty( $cart_item['composite']['price'] ) ? $cart_item['composite']['price'] : ( ! empty( $_REQUEST['product_price'] ) ? $_REQUEST['product_price'] : $item['data']->price ) );
 			
-			
-			$cart_item['variation']['Weight'] = ! empty( $cart_item['variation']['Weight'] ) ? $cart_item['variation']['Weight'] : ( ! empty( $_REQUEST['weight'] ) ? $_REQUEST['weight'] : $item['data']->weight );
+			$cart_item['variation']['Weight'] = str_replace( ',', '', ! empty( $cart_item['variation']['Weight'] ) ? $cart_item['variation']['Weight'] : ( ! empty( $_REQUEST['product_weight'] ) ? $_REQUEST['product_weight'] : $item['data']->weight ) );
 			$cart_item['variation']['SKU'] = ! empty( $cart_item['variation']['SKU'] ) ? $cart_item['variation']['SKU'] : ( ! empty( $_REQUEST['product_sku'] ) ? $_REQUEST['product_sku'] : '' );
 			
 			if( ! empty( $_REQUEST['selections'] ) && is_array( $_REQUEST['selections'] ) ) {
@@ -78,7 +77,7 @@ class WC_CP_Cart {
 		
 			if( $product->id == $item['data']->id ) {
 				
-				return $price = ! empty( $item['composite']['price'] ) ? $item['composite']['price'] : $price;
+				$price = ! empty( $item['composite']['price'] ) ? $item['composite']['price'] : $price;
 				
 			}
 			
@@ -111,7 +110,7 @@ class WC_CP_Cart {
 	 * @param  array 	$item_session_values
 	 * @return array	$cart_item
 	 */
-	function wc_cp_get_cart_data_from_session( $cart_item, $item_session_values ) {
+	public function wc_cp_get_cart_data_from_session( $cart_item, $item_session_values ) {
 		
 		$cart_item = $this->wc_cp_add_cart_item_filter( $cart_item, null );
 

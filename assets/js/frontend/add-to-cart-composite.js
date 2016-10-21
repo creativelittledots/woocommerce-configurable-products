@@ -504,9 +504,9 @@ jQuery(document).ready(function($) {
     				data = {
     					'product_id': product.get('id'),
     					'product_sku': product.get('sku'),
-    					'quantity': product.get('quantity'),
-    					'price': product.get('price'),
-    					'weight': product.get('weight'),
+    					'quantity': parseInt( product.get('quantity') ),
+    					'product_price': parseFloat( product.get('price').replace(',', '') ),
+    					'product_weight': parseFloat( product.get('weight').replace(',', '') ),
     					'selections': product.get_selections()
     				},
     				button = $('.composite_add_to_cart_button').eq(0);
