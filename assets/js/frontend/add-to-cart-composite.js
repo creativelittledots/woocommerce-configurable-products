@@ -59,8 +59,9 @@ jQuery(document).ready(function($) {
 			}
 		},
 		deselect: function() {
-    		if(!this.get('available')) {
+    		if( ! this.get('available') ) {
 			    this.set('selected', 0);
+			    this.set('actual_selected', 0);
             }
 		}
 	});
@@ -150,6 +151,7 @@ jQuery(document).ready(function($) {
 			this.get('options').each(function(option) {
 				
 				option.set('selected', 0);
+				option.set('actual_selected', 0);
 				
 			});
 			
