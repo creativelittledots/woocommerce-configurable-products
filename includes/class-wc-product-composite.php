@@ -440,7 +440,7 @@ class WC_Product_Composite extends WC_Product {
 						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : $product->get_regular_price(),
 						'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
 						'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
-						'sku' => ! empty( $component_data['sku_options'][$product_id] ) ? $component_data['sku_options'][$product_id] : $product->get_sku(),
+						'sku' => $component_data['sku_options'][$product_id] !== '' ? $component_data['sku_options'][$product_id] : $product->get_sku(),
 						'weight' => (float) $product->get_weight(),
 						'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_product( $composite_scenario_meta, $component_id, $product_id, '', $product_type ),
 					);
