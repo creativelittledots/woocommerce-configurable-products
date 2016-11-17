@@ -253,7 +253,7 @@ class WC_Product_Composite extends WC_Product {
 				$item_price_excl = '';
 
 				// No options available
-				if ( empty( $component_data['options'] ) || $component_data['optional'] )
+				if ( empty( $component_data['options'] ) || ! empty( $component_data['optional'] ) )
 					continue;
 
 				foreach ( $component_data['options'] as $option ) {
@@ -413,11 +413,16 @@ class WC_Product_Composite extends WC_Product {
 				'description' => '',
 				'optional' => 'yes',
 				'default_id' => 0,
+				'default_value' => '',
 				'recommended_id' => 0,
+				'step_value' => 0.01,
+				'min_value' => 0,
+				'max_value' => '',
 				'affect_sku' => 0,
 				'affect_sku_order' => 0,
 				'affect_sku_default' => '',
 				'assigned_ids' => array(),
+				'price_formula' => '',
 				'tag_numbers' => 'no',
 				'sovereign' => 'no'
 			), $component_data);
@@ -440,7 +445,7 @@ class WC_Product_Composite extends WC_Product {
 						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : $product->get_regular_price(),
 						'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
 						'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
-						'sku' => $component_data['sku_options'][$product_id] !== '' ? $component_data['sku_options'][$product_id] : $product->get_sku(),
+						'sku' => isset( $component_data['sku_options'][$product_id] ) && $component_data['sku_options'][$product_id] !== '' ? $component_data['sku_options'][$product_id] : $product->get_sku(),
 						'weight' => (float) $product->get_weight(),
 						'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_product( $composite_scenario_meta, $component_id, $product_id, '', $product_type ),
 					);
@@ -449,22 +454,27 @@ class WC_Product_Composite extends WC_Product {
 				
 			}
 			
-			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
+			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', array_filter([
 				'id' => $component_data['component_id'],
 				'style' => $component_data['option_style'] ? $component_data['option_style'] : $this->selections_style,
-				'title' => $component_data['title'],
-				'description' => htmlspecialchars_decode( $component_data['description'] ),
-				'optional' => $component_data['optional'] === 'yes' ? true : false,
-				'default_id' => $component_data['default_id'],
-				'recommended_id' => $component_data['recommended_id'],
-				'affect_sku' => $component_data['affect_sku'],
-				'sku_order' => $component_data['affect_sku_order'],
-				'sku_default' => $component_data['affect_sku_default'],
+				'title' => isset( $component_data['title'] ) ? $component_data['title'] : false,
+				'description' => isset( $component_data['description'] ) ? htmlspecialchars_decode( $component_data['description'] ) : false,
+				'optional' => isset( $component_data['optional'] ) && $component_data['optional'] === 'yes' ? true : false,
+				'default_id' => isset( $component_data['default_id'] ) ? $component_data['default_id'] : false,
+				'default_value' => isset( $component_data['default_value'] ) ? $component_data['default_value'] : false,
+				'recommended_id' => isset( $component_data['recommended_id'] ) ? $component_data['recommended_id'] : false,
+				'step_value' => isset( $component_data['step_value'] ) ? $component_data['step_value'] : false,
+				'min_value' => isset( $component_data['min_value'] ) ? $component_data['min_value'] : false,
+				'max_value' => isset( $component_data['max_value'] ) ? $component_data['max_value'] : false,
+				'affect_sku' => isset( $component_data['affect_sku'] ) ? $component_data['affect_sku'] : false,
+				'sku_order' => isset( $component_data['affect_sku_order'] ) ? $component_data['affect_sku_order'] : false,
+				'sku_default' => isset( $component_data['affect_sku_default'] ) ? $component_data['affect_sku_default'] : false,
 				'options' => $options,
-				'assigned_ids' => $component_data['assigned_ids'],
-				'use_tag_numbers' => $component_data['tag_numbers'] === 'yes' ? true : false,
-				'sovereign' => $component_data['sovereign'] === 'yes' ? true : false
-			], $component_id, $this );
+				'assigned_ids' => isset( $component_data['assigned_ids'] ) ? $component_data['assigned_ids'] : false,
+				'price_formula' => isset( $component_data['price_formula'] ) ? $component_data['price_formula'] : false,
+				'use_tag_numbers' => isset($component_data['tag_numbers'] ) && $component_data['tag_numbers'] === 'yes' ? true : false,
+				'sovereign' => isset( $component_data['sovereign'] ) && $component_data['sovereign'] === 'yes' ? true : false
+			]), $component_id, $this );
 			
 		}
 

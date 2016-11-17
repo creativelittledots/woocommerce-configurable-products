@@ -71,6 +71,8 @@ global $woocommerce_composite_products;
 				
 			</ul>
 			
+			<input rv-if="component:style | = 'number'" type="number" rv-min="component:min_value" rv-max="component:max_value" rv-step="component:step_value" rv-value="component:price_value" rv-placeholder="component:placeholder" rv-required="component:optional | !" rv-disabled="component:available | !" class="js-cnfg-number-field" />
+						
 			<div rv-if="component:show_tag_number_field">
 				
 				<label for="'component_' | append component:id | append '_tag_number'">Tag Number</label>

@@ -58,17 +58,21 @@ class WC_CP_Admin {
 		add_action( 'woocommerce_composite_component_admin_html', array($this, 'component_admin_html'), 10, 3 );
 
 		// Basic component config options
+		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_layout_options_style' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_title' ), 10, 3 );
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_description' ), 15, 3 );
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_options' ), 25, 3 );
-		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_layout_options_style' ), 30, 3 );
 		add_action( 'woocommerce_composite_component_admin_config_html', array( $this, 'component_config_optional' ), 35, 3 );
 
 		// Advanced component configuration
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_default_option' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_recommended_option' ), 6, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 7, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_sovereign_option' ), 8, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_default_value' ), 7, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_step_value' ), 8, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_min_value' ), 9, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_max_value' ), 10, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 11, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_sovereign_option' ), 12, 3 );
 		
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
@@ -422,44 +426,56 @@ class WC_CP_Admin {
 		global $woocommerce_composite_products;
 
 		?>
-
-		<div class="bto_selector bto_query_type_selector bto_multiselect bto_query_type_product_ids">
-			<div class="form-field"><?php
-
-				$product_id_options = array();
-
-				if ( ! empty( $data[ 'assigned_ids' ] ) ) {
-
-					$item_ids = $data[ 'assigned_ids' ];
-
-					foreach ( $item_ids as $item_id ) {
-
-						$product_title = $woocommerce_composite_products->api->get_product_title( $item_id );
-
-						if ( $product_title ) {
-
-							$product_id_options[ $item_id ] = $product_title;
-						}
-					}
-
-				}
-
-				?>
+		<div class="group_config_options hide-if-option-number">
+			<div class="form-field">
+				<label>
+					<?php echo __( 'Component Options', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'Options (products) of component.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
 				
-				<input type="hidden" id="bto_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_ids]" class="wc-product-search" style="width: 75%;" data-placeholder="<?php _e( 'Search for a product&hellip;', 'woocommerce' ); ?>" data-action="woocommerce_json_search_products" data-multiple="true" data-selected="<?php
-
-					echo esc_attr( json_encode( $product_id_options ) );
-
-				?>" value="<?php echo implode( ',', array_keys( $product_id_options ) ); ?>" />
+				<div class="bto_selector bto_query_type_selector bto_multiselect bto_query_type_product_ids">
+					<?php
+		
+					$product_id_options = array();
+	
+					if ( ! empty( $data[ 'assigned_ids' ] ) ) {
+	
+						$item_ids = $data[ 'assigned_ids' ];
+	
+						foreach ( $item_ids as $item_id ) {
+	
+							$product_title = $woocommerce_composite_products->api->get_product_title( $item_id );
+	
+							if ( $product_title ) {
+	
+								$product_id_options[ $item_id ] = $product_title;
+							}
+						}
+	
+					}
+	
+					?>
+					
+					<input type="hidden" id="bto_ids_<?php echo $id; ?>" name="bto_data[<?php echo $id; ?>][assigned_ids]" class="wc-product-search" style="width: 75%;" data-placeholder="<?php _e( 'Search for a product&hellip;', 'woocommerce' ); ?>" data-action="woocommerce_json_search_products" data-multiple="true" data-selected="<?php
+	
+						echo esc_attr( json_encode( $product_id_options ) );
+	
+					?>" value="<?php echo implode( ',', array_keys( $product_id_options ) ); ?>" />
+					
+				</div>
+		
+				<?php
+		
+				// Hook here to add your own custom query config options
+				do_action( 'woocommerce_composite_component_admin_config_query_options', $id, $data, $product_id );
+				
+				?>
 				
 			</div>
 			
 		</div>
-
+		
 		<?php
-
-		// Hook here to add your own custom query config options
-		do_action( 'woocommerce_composite_component_admin_config_query_options', $id, $data, $product_id );
 	}
 
 	/**
@@ -475,10 +491,10 @@ class WC_CP_Admin {
 		global $woocommerce_composite_products;
 
 		?>
-		<div class="default_selector">
+		<div class="default_selector hide-if-option-number">
 			<div class="form-field">
 				<label>
-					<?php echo __( 'Default Component Option', 'woocommerce-composite-products' ); ?>
+					<?php echo __( 'Default Option', 'woocommerce-composite-products' ); ?>
 					<img class="help_tip" data-tip="<?php echo __( 'Select a product that you want to use as the default (pre-selected) Component Option. To use this option, you must first add some products in the <strong>Component Options</strong> field and then save your configuration.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label><?php
 
@@ -538,6 +554,110 @@ class WC_CP_Admin {
 		<?php
 	}
 
+	/**
+	 * Add component config default value option.
+	 *
+	 * @param  int    $id
+	 * @param  array  $data
+	 * @param  int    $product_id
+	 * @return void
+	 */
+	function component_config_default_value( $id, $data, $product_id ) {
+		
+		$default = isset( $data[ 'default_value' ] ) ? $data[ 'default_value' ] : '';
+
+		?>
+		<div class="group_default_value show-if-option-number" >
+			<div class="form-field">
+				<label for="group_optional_<?php echo $id; ?>">
+					<?php echo __( 'Default Value', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'The default value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
+				<input type="number" name="bto_data[<?php echo $id; ?>][default_value]" value="<?php echo $default; ?>" />
+			</div>
+		</div>
+		<?php
+		
+	}
+	
+	/**
+	 * Add component config min value option.
+	 *
+	 * @param  int    $id
+	 * @param  array  $data
+	 * @param  int    $product_id
+	 * @return void
+	 */
+	function component_config_min_value( $id, $data, $product_id ) {
+		
+		$min = isset( $data[ 'min_value' ] ) ? $data[ 'min_value' ] : 0;
+
+		?>
+		<div class="group_min_value show-if-option-number" >
+			<div class="form-field">
+				<label for="group_optional_<?php echo $id; ?>">
+					<?php echo __( 'Min Value', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'The minimum value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
+				<input type="number" name="bto_data[<?php echo $id; ?>][min_value]" value="<?php echo $min; ?>" />
+			</div>
+		</div>
+		<?php
+		
+	}
+	
+	/**
+	 * Add component config max value option.
+	 *
+	 * @param  int    $id
+	 * @param  array  $data
+	 * @param  int    $product_id
+	 * @return void
+	 */
+	function component_config_max_value( $id, $data, $product_id ) {
+		
+		$max = isset( $data[ 'max_value' ] ) ? $data[ 'max_value' ] : '';
+
+		?>
+		<div class="group_max_value show-if-option-number" >
+			<div class="form-field">
+				<label for="group_optional_<?php echo $id; ?>">
+					<?php echo __( 'Max Value', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'The maximum value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
+				<input type="number" name="bto_data[<?php echo $id; ?>][max_value]" value="<?php echo $max; ?>" />
+			</div>
+		</div>
+		<?php
+		
+	}
+	
+	/**
+	 * Add component config step option.
+	 *
+	 * @param  int    $id
+	 * @param  array  $data
+	 * @param  int    $product_id
+	 * @return void
+	 */
+	function component_config_step_value( $id, $data, $product_id ) {
+		
+		$step = isset( $data[ 'step_value' ] ) ? $data[ 'step_value' ] : 0.01;
+
+		?>
+		<div class="group_step_value show-if-option-number">
+			<div class="form-field">
+				<label for="group_optional_<?php echo $id; ?>">
+					<?php echo __( 'Step Value', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'The increment in which the number field should increase.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
+				<input type="number" name="bto_data[<?php echo $id; ?>][step_value]" value="<?php echo $step; ?>" />
+			</div>
+		</div>
+		<?php
+		
+	}
+	
 	/**
 	 * Add component config optional option.
 	 *
@@ -1022,15 +1142,6 @@ class WC_CP_Admin {
 
 				}
 
-				// True if no products were added
-				if ( empty( $bto_data[ $group_id ][ 'assigned_ids' ] ) ) {
-
-					unset( $bto_data[ $group_id ] );
-					$zero_product_item_exists = true;
-					continue;
-
-				}
-
 				// Run query to get component option ids
 				$component_options = $woocommerce_composite_products->api->get_component_options( $bto_data[ $group_id ] );
 
@@ -1149,6 +1260,36 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'price_options' ] = $post_data['price_options'];
 				} else {
 					$bto_data[ $group_id ][ 'price_options' ] = array();
+				}
+				
+				if ( isset( $post_data[ 'default_value' ] ) ) {
+					$bto_data[ $group_id ][ 'default_value' ] = $post_data[ 'default_value' ];
+				} else {
+					$bto_data[ $group_id ][ 'default_value' ] = '';
+				}
+				
+				if ( isset( $post_data[ 'step_value' ] ) ) {
+					$bto_data[ $group_id ][ 'step_value' ] = $post_data[ 'step_value' ];
+				} else {
+					$bto_data[ $group_id ][ 'step_value' ] = 0.01;
+				}
+				
+				if ( isset( $post_data[ 'min_value' ] ) ) {
+					$bto_data[ $group_id ][ 'min_value' ] = $post_data[ 'min_value' ];
+				} else {
+					$bto_data[ $group_id ][ 'min_value' ] = 0;
+				}
+				
+				if ( isset( $post_data[ 'max_value' ] ) ) {
+					$bto_data[ $group_id ][ 'max_value' ] = $post_data[ 'max_value' ];
+				} else {
+					$bto_data[ $group_id ][ 'max_value' ] = '';
+				}
+				
+				if( isset ( $post_data['price_formula'] ) ) {
+					$bto_data[ $group_id ][ 'price_formula' ] = $post_data['price_formula'];
+				} else {
+					$bto_data[ $group_id ][ 'price_formula' ] = '';
 				}
 				
 				if( isset( $post_data['tag_numbers'] ) ) {
@@ -1435,11 +1576,6 @@ class WC_CP_Admin {
 			return false;
 		}
 
-		if ( $zero_product_item_exists ) {
-			$this->save_errors[] = $this->add_admin_error( __( 'Please assign at least one valid Component Option to every Component. Once you have added a Component, you can add Component Options to it by selecting products individually, or by choosing product categories.', 'woocommerce-composite-products' ) );
-			return false;
-		}
-
 		return true;
 	}
 
@@ -1503,6 +1639,7 @@ class WC_CP_Admin {
 			),
 			array(
 				'title' => 'SKU',
+				'condition' => 'hide-if-option-number',
 				'action' => 'woocommerce_composite_component_admin_sku_html',
 				'classes' => array(),
 			),
@@ -1773,6 +1910,10 @@ class WC_CP_Admin {
 			'checkboxes' => array(
 				'title' => 'Checkboxes',
 				'description' => 'Component Options are presented as checkboxes, where many products can be selected, all in a vertical list. Checkboxes are disabled when outside of scenarios.',
+			),
+			'number' => array(
+				'title' => 'Number',
+				'description' => 'Component Option is presented as number field, where the user can enter a number according to the step interval you set.',
 			)
 		);
 		
@@ -1817,13 +1958,13 @@ class WC_CP_Admin {
 		
 		?>
 		
-		<div class="recommended_option">
+		<div class="recommended_option hide-if-option-number">
 	
 			<div class="form-field">
 				
 				<label>
 					
-					<?php echo __( 'Recommended Component Option', 'woocommerce-composite-products' ); ?>
+					<?php echo __( 'Recommended Option', 'woocommerce-composite-products' ); ?>
 					
 					<img class="help_tip" data-tip="<?php echo __( 'Select a product that you want to use as the recommended Component Option. To use this option, you must first add some products in the <strong>Component Options</strong> field and then save your configuration.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					
@@ -1918,7 +2059,7 @@ class WC_CP_Admin {
 		
 				<label class="bundle_group_label">
 					
-					<?php _e( 'Require Tag Numbers', 'woocommerce-composite-products' ); ?>
+					<?php _e( 'Use Tag Numbers', 'woocommerce-composite-products' ); ?>
 					
 					<img class="help_tip" data-tip="<?php echo __( 'Check this box if you would this component to display an input for tag numbers during configuration', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					
@@ -1976,7 +2117,7 @@ class WC_CP_Admin {
 					
 				</label>
 				
-				<select name="bto_data[<?php echo $id; ?>][option_style]">
+				<select name="bto_data[<?php echo $id; ?>][option_style]" class="option_style_select">
 					
 					<?php $mode = $data[ 'option_style' ]; ?>
 					
@@ -2182,85 +2323,99 @@ class WC_CP_Admin {
 			<div class="form-field">
 		
 				<label class="bundle_group_label">
+				
+					<?php $is_formula = ( ! empty( $data['option_style'] ) && $data['option_style'] == 'number' ); ?>
 					
-					<?php _e( 'Price Options', 'woocommerce-composite-products' ); ?>
+					<?php echo $is_formula ? __( 'Price Formula', 'woocommerce-composite-products' ) : __( 'Price Options', 'woocommerce-composite-products' ); ?>
 					
-					<img class="help_tip" data-tip="<?php echo __( 'Enter the Price to per component option.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
-					
-					<small>Leave prices blank if you want price to be retrieved from respective products.</small>
+					<img class="help_tip" data-tip="<?php echo $is_formula ? __( 'Enter the Price formula for this component. Leave formula blank to keep price unaffected by this component.', 'woocommerce-composite-products' ) : __( 'Enter the Price to per component option. Leave prices blank if you want price to be retrieved from respective products.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					
 				</label>
 				
-				<?php
-			
-				// Run query to get component option ids
-				$item_ids = $woocommerce_composite_products->api->get_component_options( $data );
-			
-				if ( ! empty( $item_ids ) ) : ?>
+				<?php if( ! empty( $data['option_style'] ) && $data['option_style'] == 'number' ) : ?>
 				
-					<table>
+					<?php $formula = isset( $data[ 'price_formula' ] ) ? $data[ 'price_formula' ] : ''; ?>
+					
+					<div class="prompt mg-b-1"><em><?php _e( 'If you are expecting to see the price configuration for your Component Options then you may need to Save Configuration below to continue.', 'woocommerce-composite-products' ); ?></em></div>
+					
+					<input type="text" name="bto_data[<?php echo $id; ?>][price_formula]" value="<?php echo $formula; ?>" placeholder="{n}*2.75" />
 						
-						<thead>
+					<div class="clear"></div>
+					
+					<small>{n} represents the value of the component</small>
+				
+				<?php else :
+			
+					// Run query to get component option ids
+					$item_ids = $woocommerce_composite_products->api->get_component_options( $data );
+				
+					if ( ! empty( $item_ids ) ) : ?>
+					
+						<table>
 							
-							<tr>
+							<thead>
 								
-								<td><strong><?php _e('Component Option', 'woocommerce-composite-products'); ?></strong></td>
-								
-								<td><strong><?php _e('Price (£)', 'woocommerce-composite-products'); ?></strong></td>
-								
-							</tr>
-							
-						</thead>
-						
-						<tbody>
-							
-							<?php if(isset($data['optional']) && $data['optional'] == 'yes') : ?>
-							
-								<tr>
-										
-									<td><?php _e('None', 'woocommerce-companies'); ?></td>
-									
-									<td>
-										
-										<input type="text" name="bto_data[<?php echo $id; ?>][sku_options][-1]" value="<?php echo isset($data[ 'sku_options' ][ '-1' ]) ? $data[ 'sku_options' ][ '-1' ] : get_post_meta($item_id, '_sku', true); ?>" />
-										
-									</td>
-									
-								</tr>
-							
-							<?php endif; ?>
-							
-							<?php foreach ( $item_ids as $item_id ) : $product_title = $woocommerce_composite_products->api->get_product_title( $item_id ); ?>
-							
 								<tr>
 									
-									<td>
-										
-										<?php echo $product_title; ?>
-										
-									</td>
+									<td><strong><?php _e('Component Option', 'woocommerce-composite-products'); ?></strong></td>
 									
-									<td>
-										
-										<?php $item = wc_get_product($item_id); ?>
-										
-										<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'price_options' ][ $item_id ] ) ? $data[ 'price_options' ][ $item_id ] : ''; ?>" />
-										
-									</td>
+									<td><strong><?php _e('Price (£)', 'woocommerce-composite-products'); ?></strong></td>
 									
 								</tr>
 								
-							<?php endforeach; ?>
+							</thead>
 							
-						</tbody>
+							<tbody>
+								
+								<?php if(isset($data['optional']) && $data['optional'] == 'yes') : ?>
+								
+									<tr>
+											
+										<td><?php _e('None', 'woocommerce-companies'); ?></td>
+										
+										<td>
+											
+											<input type="text" name="bto_data[<?php echo $id; ?>][price_options][-1]" value="<?php echo isset($data[ 'price_options' ][ '-1' ]) ? $data[ 'price_options' ][ '-1' ] : ''; ?>" />
+											
+										</td>
+										
+									</tr>
+								
+								<?php endif; ?>
+								
+								<?php foreach ( $item_ids as $item_id ) : $product_title = $woocommerce_composite_products->api->get_product_title( $item_id ); ?>
+								
+									<tr>
+										
+										<td>
+											
+											<?php echo $product_title; ?>
+											
+										</td>
+										
+										<td>
+											
+											<?php $item = wc_get_product($item_id); ?>
+											
+											<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'price_options' ][ $item_id ] ) ? $data[ 'price_options' ][ $item_id ] : ''; ?>" />
+											
+										</td>
+										
+									</tr>
+									
+								<?php endforeach; ?>
+								
+							</tbody>
+							
+						</table>
 						
-					</table>
-					
-				<?php else : ?>
-					
-					<div class="prompt"><em><?php _e( 'To set price options, you must first add some products in the Component Options field and then save your configuration&hellip;', 'woocommerce-composite-products' ); ?></em></div>
-					
-				<?php endif; ?>
+					<?php else : ?>
+						
+						<div class="prompt"><em><?php _e( 'To set price options, you must first add some products in the Component Options field and then save your configuration&hellip;', 'woocommerce-composite-products' ); ?></em></div>
+						
+					<?php endif; 
+						
+				endif; ?>	
 				
 			</div>
 			

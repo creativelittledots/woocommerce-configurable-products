@@ -70,14 +70,51 @@ jQuery(document).ready(function($) {
 		model: Option
 	});
 	
+	var PriceFormula = Backbone.Model.extend({
+		initialize: function() {
+			this.calculate_price();
+			this.set_title();
+		},
+		defaults: {
+			title: '',
+			value: 0,
+			formula: '',
+			price: 0,
+			price_incl_tax: 0,
+		},
+		calculate_price: function() {
+			this.set('price', this.get_price());
+			this.set('price_incl_tax', this.get_price(true));
+		},
+		get_price: function(incl_tax) {
+			var price = eval(this.get('formula').replace('{n}', this.get('value'))),
+				tax_rate = 1.2; // dynamically please
+				
+			return incl_tax ? price*tax_rate : price;
+		},
+		set_title: function() {
+			this.set('title', this.get('value'))
+		}
+	});
+	
+	var PriceFormulas = Backbone.Collection.extend({
+		model: PriceFormula
+	});
+	
 	var Component = Backbone.Model.extend({
 		initialize: function(opts) {
 			this.set('empty_text', this.get('empty_text') + ( this.get('optional') ? ' (optional)' : ' (required)'));
+			this.set('price_value', this.get('default_value'));
 			this.set('options', new Options(this.get('options')));
-			this.set('selections', new Options(this.get('selections')));
+			if(this.is_style('number')) {
+				this.calculate();
+			} else {
+				this.set('selections', new Options(this.get('selections')));
+			}
 			this.listenTo(this.get('options'), 'change:selected', this.update_selections);
 			this.on('change:selections', this.maybe_show_tag_number_field);
 			this.on('change:selections', this.update_selected);
+			this.on('change:price_value', this.calculate);
 			if(this.get('default_id') > 0) {
     			var option = this.get('options').get( this.get('default_id') );
                 if( option instanceof Option ) {
@@ -114,11 +151,34 @@ jQuery(document).ready(function($) {
 			tag_number: '',
 			recommended_id: 0,
 			default_id: 0,
+			default_value: '',
+			price_value: '',
+			step_value: 0.01,
+			min_value: 0,
+			max_value: '',
             updating: false,
 			sovereign: false,
+			price_formula: '',
+			available: true
 		},
 		is_style: function(style) {
 			return this.get('style') == style;	
+		},
+		calculate: function() {
+			
+			// number only
+			
+			if( this.get('price_value') ) {
+				
+				var selections = [{
+					value: this.get('price_value'),
+					formula: this.get('price_formula')
+				}];
+			
+				this.set('selections', new PriceFormulas(selections));
+				
+			}
+			
 		},
 		select: function(e) {
 			
@@ -371,6 +431,13 @@ jQuery(document).ready(function($) {
 							
 							component.set('error', false);
 							
+						} else if( selection instanceof PriceFormula ) {
+							
+							price += parseFloat(selection.get('price'));
+							price_incl_tax += parseFloat(selection.get('price_incl_tax'));
+							
+							component.set('error', false);
+							
 						}
 						
 					});
@@ -586,6 +653,10 @@ jQuery(document).ready(function($) {
 	var product = new Product(wc_cp_product_data);
 	
 	form.on('valid.fndtn.abide', product.add_to_cart);
+	
+	form.on('keypress', '.js-cnfg-number-field', function (e) {
+		e.preventDefault();
+	});
 	
 	rivets.formatters['='] = function (value, arg) {
 		return value == arg;

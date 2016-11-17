@@ -22,7 +22,7 @@ class WC_CP_Cart {
 		
 		add_filter( 'woocommerce_composite_get_price', array($this, 'wc_cp_get_price'), 10, 2 );
 		
-		add_filter( 'woocommerce_composite_product_get_weight', array($this, 'wc_cp_get_weight'), 10, 2 );
+		add_filter( 'woocommerce_composite_product_weight', array($this, 'wc_cp_get_weight'), 10, 2 );
 			
 	}
 

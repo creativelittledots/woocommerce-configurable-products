@@ -98,7 +98,6 @@ class WC_CP_Display {
 		wp_enqueue_style( 'wc-composite-single-css' );
 
 		wc_get_template( 'single-product/composite.php', array(
-			'components'       => $components,
 			'product'          => $product
 		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
 
