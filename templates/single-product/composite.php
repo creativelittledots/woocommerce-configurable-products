@@ -35,7 +35,7 @@ global $woocommerce_composite_products;
 							
 				<option class="empty none" value="0" rv-text="component:empty_text"></option>
 					
-				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:title | append ' +' | append option:formatted_price" rv-disabled="option:available | !"></option>
+				<option rv-each-option="component:options" rv-value="option:id" rv-text="option:title | append option:formatted_price" rv-disabled="option:available | !"></option>
 					
 			</select> 
 			
@@ -71,7 +71,13 @@ global $woocommerce_composite_products;
 				
 			</ul>
 			
-			<input rv-if="component:style | = 'number'" type="number" rv-min="component:min_value" rv-max="component:max_value" rv-step="component:step_value" rv-value="component:price_value" rv-placeholder="component:placeholder" rv-required="component:optional | !" rv-disabled="component:available | !" class="js-cnfg-number-field" />
+			<div rv-if="component:style | = 'number'" rv-class-error="component:error">
+			
+				<input type="number" rv-min="component:min_value" rv-max="component:max_value" rv-step="component:step_value" rv-value="component:price_value" rv-placeholder="component:placeholder" rv-required="component:optional | !" rv-disabled="component:available | !" class="js-cnfg-number-field" />
+				
+				<small class="error">The value must be between { component:min_value } and { component:max_value }</small>
+				
+			</div>
 						
 			<div rv-if="component:show_tag_number_field">
 				

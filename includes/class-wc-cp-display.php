@@ -86,6 +86,7 @@ class WC_CP_Display {
 			'base_price_incl_tax' => (float) $product->get_base_price_including_tax(),
 			'base_sku'  => $product->get_build_sku() ? $product->get_base_sku() : $product->get_sku(),
 			'base_weight'  => (float) $product->get_base_weight(),
+			'weight_unit' => strtoupper(get_option('woocommerce_weight_unit')),
 			'build_sku' => $product->get_build_sku(),
 			'components' => $product->get_composite_data(),
 			'scenarios' => array_values( $product->get_composite_scenario_data() )

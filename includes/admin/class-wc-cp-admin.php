@@ -71,8 +71,9 @@ class WC_CP_Admin {
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_step_value' ), 8, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_min_value' ), 9, 3 );
 		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_max_value' ), 10, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 11, 3 );
-		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_sovereign_option' ), 12, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_suffix' ), 11, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_tag_numbers_option' ), 12, 3 );
+		add_action( 'woocommerce_composite_component_admin_advanced_html', array( $this, 'component_config_sovereign_option' ), 13, 3 );
 		
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_affect_sku' ), 5, 3 );
 		add_action( 'woocommerce_composite_component_admin_sku_html', array( $this, 'component_sku_sku_order' ), 10, 3 );
@@ -569,7 +570,7 @@ class WC_CP_Admin {
 		?>
 		<div class="group_default_value show-if-option-number" >
 			<div class="form-field">
-				<label for="group_optional_<?php echo $id; ?>">
+				<label for="group_default_value_<?php echo $id; ?>">
 					<?php echo __( 'Default Value', 'woocommerce-composite-products' ); ?>
 					<img class="help_tip" data-tip="<?php echo __( 'The default value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label>
@@ -595,7 +596,7 @@ class WC_CP_Admin {
 		?>
 		<div class="group_min_value show-if-option-number" >
 			<div class="form-field">
-				<label for="group_optional_<?php echo $id; ?>">
+				<label for="group_min_value_<?php echo $id; ?>">
 					<?php echo __( 'Min Value', 'woocommerce-composite-products' ); ?>
 					<img class="help_tip" data-tip="<?php echo __( 'The minimum value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label>
@@ -621,11 +622,37 @@ class WC_CP_Admin {
 		?>
 		<div class="group_max_value show-if-option-number" >
 			<div class="form-field">
-				<label for="group_optional_<?php echo $id; ?>">
+				<label for="group_max_value_<?php echo $id; ?>">
 					<?php echo __( 'Max Value', 'woocommerce-composite-products' ); ?>
 					<img class="help_tip" data-tip="<?php echo __( 'The maximum value of the number field.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label>
 				<input type="number" name="bto_data[<?php echo $id; ?>][max_value]" value="<?php echo $max; ?>" />
+			</div>
+		</div>
+		<?php
+		
+	}
+	
+	/**
+	 * Add component config suffix option.
+	 *
+	 * @param  int    $id
+	 * @param  array  $data
+	 * @param  int    $product_id
+	 * @return void
+	 */
+	function component_config_suffix( $id, $data, $product_id ) {
+		
+		$suffix = isset( $data[ 'suffix' ] ) ? $data[ 'suffix' ] : 'mm';
+
+		?>
+		<div class="group_suffix show-if-option-number" >
+			<div class="form-field">
+				<label for="group_suffix_<?php echo $id; ?>">
+					<?php echo __( 'Suffix', 'woocommerce-composite-products' ); ?>
+					<img class="help_tip" data-tip="<?php echo __( 'The suffix adjacent to the value on the sidebar.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+				</label>
+				<input type="text" name="bto_data[<?php echo $id; ?>][suffix]" value="<?php echo $suffix; ?>" />
 			</div>
 		</div>
 		<?php
@@ -647,7 +674,7 @@ class WC_CP_Admin {
 		?>
 		<div class="group_step_value show-if-option-number">
 			<div class="form-field">
-				<label for="group_optional_<?php echo $id; ?>">
+				<label for="group_step_value_<?php echo $id; ?>">
 					<?php echo __( 'Step Value', 'woocommerce-composite-products' ); ?>
 					<img class="help_tip" data-tip="<?php echo __( 'The increment in which the number field should increase.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 				</label>
@@ -1262,6 +1289,12 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'price_options' ] = array();
 				}
 				
+				if( isset ( $post_data['formula_options'] ) ) {
+					$bto_data[ $group_id ][ 'formula_options' ] = $post_data['formula_options'];
+				} else {
+					$bto_data[ $group_id ][ 'formula_options' ] = array();
+				}
+				
 				if ( isset( $post_data[ 'default_value' ] ) ) {
 					$bto_data[ $group_id ][ 'default_value' ] = $post_data[ 'default_value' ];
 				} else {
@@ -1284,6 +1317,12 @@ class WC_CP_Admin {
 					$bto_data[ $group_id ][ 'max_value' ] = $post_data[ 'max_value' ];
 				} else {
 					$bto_data[ $group_id ][ 'max_value' ] = '';
+				}
+				
+				if ( isset( $post_data[ 'suffix' ] ) ) {
+					$bto_data[ $group_id ][ 'suffix' ] = $post_data[ 'suffix' ];
+				} else {
+					$bto_data[ $group_id ][ 'suffix' ] = 'mm';
 				}
 				
 				if( isset ( $post_data['price_formula'] ) ) {
@@ -2328,7 +2367,7 @@ class WC_CP_Admin {
 					
 					<?php echo $is_formula ? __( 'Price Formula', 'woocommerce-composite-products' ) : __( 'Price Options', 'woocommerce-composite-products' ); ?>
 					
-					<img class="help_tip" data-tip="<?php echo $is_formula ? __( 'Enter the Price formula for this component. Leave formula blank to keep price unaffected by this component.', 'woocommerce-composite-products' ) : __( 'Enter the Price to per component option. Leave prices blank if you want price to be retrieved from respective products.', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
+					<img class="help_tip" data-tip="<?php echo $is_formula ? __( 'Enter the Price formula for this component. Leave the formula blank to keep price unaffected by this component.', 'woocommerce-composite-products' ) : __( 'Enter the Price to per component option. Leave prices blank if you want price to be retrieved from respective products; these respective prices are presented in the placeholder(s).', 'woocommerce-composite-products' ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" />
 					
 				</label>
 				
@@ -2344,7 +2383,25 @@ class WC_CP_Admin {
 					
 					<small>{n} represents the value of the component</small>
 				
-				<?php else :
+				<?php else : ?>
+				
+					<div class="mg-b-1">
+						
+						<strong>Notes on Formula</strong>
+						
+						<div class="clear"></div>
+									
+						<small>{p} represents the price of the current component</small>
+						
+						<div class="clear"></div>
+						
+						<small>{n1} represents the value of the first component etc.</small>
+						
+					</div>
+										
+					<?php
+					
+					
 			
 					// Run query to get component option ids
 					$item_ids = $woocommerce_composite_products->api->get_component_options( $data );
@@ -2360,6 +2417,12 @@ class WC_CP_Admin {
 									<td><strong><?php _e('Component Option', 'woocommerce-composite-products'); ?></strong></td>
 									
 									<td><strong><?php _e('Price (£)', 'woocommerce-composite-products'); ?></strong></td>
+									
+									<td>
+										
+										<strong><?php _e('Forumla', 'woocommerce-composite-products'); ?></strong>
+										
+									</td>
 									
 								</tr>
 								
@@ -2397,7 +2460,15 @@ class WC_CP_Admin {
 											
 											<?php $item = wc_get_product($item_id); ?>
 											
-											<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'price_options' ][ $item_id ] ) ? $data[ 'price_options' ][ $item_id ] : ''; ?>" />
+											<input type="text" name="bto_data[<?php echo $id; ?>][price_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'price_options' ][ $item_id ] ) ? $data[ 'price_options' ][ $item_id ] : ''; ?>" placeholder="<?php echo $item->get_price(); ?>" />
+											
+										</td>
+										
+										<td>
+											
+											<input type="text" name="bto_data[<?php echo $id; ?>][formula_options][<?php echo $item_id; ?>]" value="<?php echo isset( $data[ 'formula_options' ][ $item_id ] ) ? $data[ 'formula_options' ][ $item_id ] : ''; ?>" placeholder="{p}" />
+											
+											
 											
 										</td>
 										
