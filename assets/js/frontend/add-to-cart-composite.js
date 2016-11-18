@@ -1,5 +1,7 @@
 jQuery(document).ready(function($) {
 	
+	var calculate;
+	
 	// wc_checkout_params is required to continue, ensure the object exists
 	if ( typeof wc_cp_product_data === 'undefined' ) {
 		return false;
@@ -168,10 +170,27 @@ jQuery(document).ready(function($) {
 			
 			// number only
 			
+			var component = this;
+			
+			clearTimeout(calculate);
+			
+			calculate = setTimeout(function() {
+				
+				if(component.get('max_value') && parseFloat(component.get('price_value')) > parseFloat(component.get('max_value'))) {
+					component.set('price_value', parseFloat(component.get('max_value')));
+				}
+				else if(component.get('min_value') && parseFloat(component.get('price_value')) < parseFloat(component.get('min_value'))) {
+					component.set('price_value', parseFloat(component.get('min_value')));
+				}
+				
+			}, 750);
+			
 			if( this.get('price_value') ) {
 				
+				var max = Math.max(this.get('price_value'), this.get('min_value'));
+				
 				var selections = [{
-					value: this.get('price_value'),
+					value: this.get('max_value') ? Math.min(max, this.get('max_value')) : max,
 					formula: this.get('price_formula')
 				}];
 			
@@ -653,10 +672,6 @@ jQuery(document).ready(function($) {
 	var product = new Product(wc_cp_product_data);
 	
 	form.on('valid.fndtn.abide', product.add_to_cart);
-	
-	form.on('keypress', '.js-cnfg-number-field', function (e) {
-		e.preventDefault();
-	});
 	
 	rivets.formatters['='] = function (value, arg) {
 		return value == arg;
