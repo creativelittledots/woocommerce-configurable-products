@@ -361,6 +361,44 @@ jQuery( function($) {
         }
 		
 	});
+	
+	/* ------------------------------------*/
+	/* Option Change
+	/* ------------------------------------*/
+	
+	function showAppropriateOptionsForComponent(e, option) {
+		
+		var thisOption = $(this).val(),
+			group = $(this).closest('.bto_group');
+			
+		option = option ? option : thisOption;
+			
+		group.find('[class*="show-if-option-"]').hide();
+		group.find('[class*="hide-if-option-"]').show();
+		group.find('.show-if-option-' + option).show();
+		group.find('.hide-if-option-' + option).hide();
+		
+	}
+	
+	function showAppropriateOptions(e) {
+		
+		var option = $(this).val();
+		
+		$('select.option_style_select[val="0"]').each(function() {
+			
+			showAppropriateOptionsForComponent(e, option);
+			
+		});
+		
+	}
+	
+	$(document).on('change', 'select[name="bto_selection_mode"]', showAppropriateOptions);
+	
+	$(document).on('change', 'select.option_style_select', showAppropriateOptionsForComponent);
+	
+	$('select[name="bto_selection_mode"]').change();
+	
+	$('select.option_style_select').change();
 
 
 	/* ------------------------------------*/
@@ -707,6 +745,9 @@ jQuery( function($) {
 				$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2();
 				$( '#bto_config_group_inner' ).wc_cp_select2_products();
 				$( '#bto_config_group_inner, #bto_scenarios_inner' ).wc_cp_select2_component_options();
+				
+				$('select[name="bto_selection_mode"]').change();
+				$('select.option_style_select').change();
 
 				if ( post_response.length > 0 ) {
 					alert( post_response.join( '\n\n' ) );

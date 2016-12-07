@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) )
 	<div class="bto_group_data wc-metabox-content">
 		<ul class="subsubsub">
 			<?php $i = 0; foreach($tabs as $tab_key => $tab) : ?>
-			<li><a href="#" data-tab="<?php echo $tab_key; ?>" class="<?php echo $i == 0 ? 'current' : ''; ?> <?php implode(' ', $tab['classes']); ?>"><?php
+			<li<?php echo ! empty( $tab['condition'] ) ? ' class="' . $tab['condition'] . '"' : ''; ?>><a href="#" data-tab="<?php echo $tab_key; ?>" class="<?php echo $i == 0 ? 'current' : ''; ?> <?php implode(' ', $tab['classes']); ?>"><?php
 				echo __( $tab['title'] , 'woocommerce-composite-products' );
 			?></a><?php echo count($tabs) > ($i+1)  ? ' | ' : ''; ?></li>
 			<?php $i++; endforeach; ?>

@@ -26,18 +26,22 @@ jQuery(document).ready(function($) {
 	
 	var Option = Backbone.Model.extend({
 		initialize: function() {
-			this.on('change:is_recommended', this.display);
+			this.set('starting_price', this.get('price'));
+			this.set('starting_price_incl_tax', this.get('price_incl_tax'));
+			this.on('change:is_recommended', this.set_display);
 			this.on('change:available', this.deselect);
-			this.set('formatted_price', this.get('price') > 0 ? wc_cp_params.currency + parseFloat(this.get('price')).formatMoney() : '');
-			this.display();
+			this.set_display();
 		},
 		defaults: {
 			id: null,
 			title: '',
 			display: '',
 			price: 0,
+			starting_price: 0,
 			price_incl_tax: 0,
+			starting_price_incl_tax: 0,
 			formatted_price: '',
+			formula: '{p}',
 			weight: 0,
 			sku: '',
 			is_recommended: 0,
@@ -46,10 +50,14 @@ jQuery(document).ready(function($) {
 			selected: 0,
 			actual_selected: 0,
 		},
-		display: function() {
-    		this.set('display', this.get('title') + ( this.get('formatted_price') ? ' <strong>[+' + this.get('formatted_price') + ']</strong>' : '' ) + ( this.get('is_recommended') ? ' <em>Recommended</em>' : '' ) );
+		set_formatted_price: function() {
+			this.set('formatted_price', this.get('price') > 0 ? '+' + wc_cp_params.currency + parseFloat(this.get('price')).formatMoney() : '');
 		},
-		select: function() {
+		set_display: function() {
+			this.set_formatted_price();
+    		this.set('display', this.get('title') + ( this.get('formatted_price') ? ' <strong>[' + this.get('formatted_price') + ']</strong>' : '' ) + ( this.get('is_recommended') ? ' <em>Recommended</em>' : '' ) );
+		},
+		select: function() {	
 			if(this.get('actual_selected') != this.get('id')) {
 				this.set('selected', this.get('id'));
 				this.set('actual_selected', this.get('id'));
@@ -63,6 +71,26 @@ jQuery(document).ready(function($) {
 			    this.set('selected', 0);
 			    this.set('actual_selected', 0);
             }
+		},
+		calculate_price: function(components) {
+			this.set('price', this.get_calculated_price(this.get('starting_price'), components));
+			this.set('price_incl_tax', this.get_calculated_price(this.get('starting_price_incl_tax'), components));
+			this.set_display();
+		},
+		get_calculated_price: function(price, components) {
+			var formula = this.get('formula').replace('{p}', price);
+			if(formula.indexOf('{n') > -1) {
+				var i = 0;
+				components.each(function(component) {
+					var selections = component.get('selections');
+					i++
+					formula = formula.replace('{n'+i+'}', selections instanceof PriceFormulas ? selections.at(0).get('value') : 0);
+					if(formula.indexOf('{n') == -1) {
+						return false;	
+					}
+				});
+			}
+			return eval(formula);
 		}
 	});
 	
@@ -70,14 +98,47 @@ jQuery(document).ready(function($) {
 		model: Option
 	});
 	
+	var PriceFormula = Backbone.Model.extend({
+		initialize: function() {
+			this.calculate_price();
+		},
+		defaults: {
+			title: '',
+			value: 0,
+			formula: '',
+			error: false,
+			price: 0,
+			price_incl_tax: 0,
+		},
+		calculate_price: function() {
+			this.set('price', this.get_price());
+			this.set('price_incl_tax', this.get_price(true));
+		},
+		get_price: function(incl_tax) {
+			var price = eval(this.get('formula').replace('{n}', this.get('value'))),
+				tax_rate = 1.2; // dynamically please
+				
+			return incl_tax ? price*tax_rate : price;
+		}
+	});
+	
+	var PriceFormulas = Backbone.Collection.extend({
+		model: PriceFormula
+	});
+	
 	var Component = Backbone.Model.extend({
 		initialize: function(opts) {
 			this.set('empty_text', this.get('empty_text') + ( this.get('optional') ? ' (optional)' : ' (required)'));
 			this.set('options', new Options(this.get('options')));
-			this.set('selections', new Options(this.get('selections')));
-			this.listenTo(this.get('options'), 'change:selected', this.update_selections);
 			this.on('change:selections', this.maybe_show_tag_number_field);
 			this.on('change:selections', this.update_selected);
+			if(this.is_style('number')) {
+				this.on('change:price_value', this.update_value_selections);
+				this.set('price_value', this.get('default_value'));
+			} else {
+				this.set('selections', new Options(this.get('selections')));
+				this.listenTo(this.get('options'), 'change:selected', this.update_option_selections);
+			}
 			if(this.get('default_id') > 0) {
     			var option = this.get('options').get( this.get('default_id') );
                 if( option instanceof Option ) {
@@ -90,8 +151,6 @@ jQuery(document).ready(function($) {
     				option.set('is_recommended', 1); 
     			}
 			}
-			this.update_selected();
-			this.maybe_show_tag_number_field();
 		},
 		defaults: {
 			id: null,
@@ -103,8 +162,9 @@ jQuery(document).ready(function($) {
 			no_of_selections: 0,
 			selected: 0,
 			first: 0,
-			optional: true,
+			optional: false,
 			error: false,
+			display_error: false,
 			sku_order: 0,
 			sku_default: '',
 			affect_sku: false,
@@ -114,11 +174,39 @@ jQuery(document).ready(function($) {
 			tag_number: '',
 			recommended_id: 0,
 			default_id: 0,
+			default_value: '',
+			price_value: '',
+			step_value: 0.01,
+			min_value: 0,
+			max_value: '',
+			suffix: '',
             updating: false,
 			sovereign: false,
+			price_formula: '',
+			available: true
 		},
 		is_style: function(style) {
 			return this.get('style') == style;	
+		},
+		update_value_selections: function() {
+			
+			// number only
+			
+			var title = this.get('title') + ': ' + this.get('price_value').toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + this.get('suffix'),
+				max = Math.max(this.get('price_value'), this.get('min_value')),
+				value = this.get('max_value') ? Math.min(max, this.get('max_value')) : max,
+				error = value != this.get('price_value');
+				
+			var selections = [{
+				title: title,
+				value: value,
+				error: error,
+				formula: this.get('price_formula')
+			}];
+		
+			this.set('selections', new PriceFormulas(selections));
+			this.set('no_of_selections', selections.length);
+			
 		},
 		select: function(e) {
 			
@@ -156,7 +244,7 @@ jQuery(document).ready(function($) {
 			});
 			
 		},
-		update_selections: function(model) {
+		update_option_selections: function(model) {
 			
 			if( ! this.get('updating') ) {
 			
@@ -233,7 +321,17 @@ jQuery(document).ready(function($) {
 		
 			if( selections.length ) {
 				
-				this.set('selected', selections.at(0).get('id'));
+				if( selections instanceof Options ) {
+				
+					this.set('selected', selections.at(0).get('id') );
+					
+				} else {
+					
+					var option = selections.at(0);
+					
+					this.set('selected', option.get('value') && ! option.get('error') ? true : false );
+					
+				}
 				
 			} else {
 				
@@ -314,7 +412,8 @@ jQuery(document).ready(function($) {
 				}
 			});
 			
-			var product = this;
+			var product = this,
+				components = product.get('components'),
 			    min_price = parseFloat(this.get('min_price')),
 			    min_price_incl_tax = parseFloat(this.get('min_price_incl_tax')),
 				price = parseFloat(this.get('base_price')),
@@ -325,9 +424,20 @@ jQuery(document).ready(function($) {
 				no_of_selections = 0,
 				active_scenarios = [];
 			
-			product.get('components').each(function(component) {
+			components.each(function(component) {
 				
-				var selections = component.get('selections');
+				var options = component.get('options'),
+					selections = component.get('selections');
+				
+				if( options.length ) {
+					
+					options.each(function(option) {
+						
+						option.calculate_price(components);
+						
+					});
+					
+				}
 				
 				if( selections.length ) {
 				
@@ -370,6 +480,23 @@ jQuery(document).ready(function($) {
 							no_of_selections++;
 							
 							component.set('error', false);
+							
+						} else if( selection instanceof PriceFormula ) {
+							
+							price += parseFloat(selection.get('price'));
+							price_incl_tax += parseFloat(selection.get('price_incl_tax'));
+							
+							component.set('error', selection.get('error'));
+							
+							if( component.get('error') ) {
+								
+								errors++;
+								
+							} else {
+								
+								no_of_selections++;
+								
+							}
 							
 						}
 						
@@ -443,7 +570,7 @@ jQuery(document).ready(function($) {
 			
 			this.set('price', Math.max(price, min_price).formatMoney());
 			this.set('price_incl_tax', Math.max(price_incl_tax, min_price_incl_tax).formatMoney());
-			this.set('weight', weight.toFixed(1));
+			this.set('weight', weight.toFixed(2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","));
 			this.set('errors', errors);
 			this.set('selections', no_of_selections);
 			
@@ -496,7 +623,7 @@ jQuery(document).ready(function($) {
 		},
 		add_to_cart: function(e) {
     		
-    		if( ! product.get( 'adding_to_cart' ) ) {
+    		if( ! product.get( 'adding_to_cart' ) && ! product.get('errors') ) {
         		
         		product.set( 'adding_to_cart', true );
 			
@@ -508,7 +635,7 @@ jQuery(document).ready(function($) {
     					'product_sku': product.get('sku'),
     					'quantity': parseInt( product.get('quantity') ),
     					'product_price': parseFloat( product.get('price').replace(',', '') ),
-    					'product_weight': parseFloat( product.get('weight').replace(',', '') ),
+    					'product_weight': product.get('weight') + wc_cp_product_data.weight_unit,
     					'selections': product.get_selections()
     				},
     				button = $('.composite_add_to_cart_button').eq(0);
@@ -600,26 +727,26 @@ jQuery(document).ready(function($) {
 	}
 	
 	rivets.formatters['>'] = function (value, arg) {
-		return value > arg;
+		return parseFloat(value) > parseFloat(arg);
 	}
 	
 	rivets.formatters['>='] = function (value, arg) {
-		return value >= arg;
+		return parseFloat(value) >= parseFloat(arg);
 	}
 	
 	rivets.formatters['<'] = function (value, arg) {
-		return value < arg;
+		return parseFloat(value) < parseFloat(arg);
 	}
 	
 	rivets.formatters['<='] = function (value, arg) {
-		return value <= arg;
+		return parseFloat(value) <= parseFloat(arg);
 	}
 	
-	rivets.formatters.and = function(comparee, comparator) {
+	rivets.formatters['&&'] = function(comparee, comparator) {
 	    return comparee && comparator;
 	};
 	
-	rivets.formatters.or = function(comparee, comparator) {
+	rivets.formatters['^'] = function(comparee, comparator) {
 	    return comparee || comparator;
 	};
 	

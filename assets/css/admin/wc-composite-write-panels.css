@@ -203,3 +203,12 @@ button.add_bto_group, button.add_bto_scenario {
 #bto-scenarios-message {
 	margin-bottom: 13px;
 }
+
+#bto_product_data input[type="text"],
+#bto_product_data input[type="number"] {
+	min-width: 0;
+}
+
+.mg-b-1 {
+	margin-bottom: 1rem;
+}
