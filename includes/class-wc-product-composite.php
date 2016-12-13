@@ -507,7 +507,7 @@ class WC_Product_Composite extends WC_Product {
 				
 			}
 			
-			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
+			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', array_filter([
 				'id' => $component_data['component_id'],
 				'style' => $component_data['option_style'] ? $component_data['option_style'] : $this->selections_style,
 				'title' => isset( $component_data['title'] ) ? $component_data['title'] : false,
@@ -522,13 +522,13 @@ class WC_Product_Composite extends WC_Product {
 				'suffix' => isset( $component_data['suffix'] ) ? $component_data['suffix'] : false,
 				'affect_sku' => isset( $component_data['affect_sku'] ) && $component_data['affect_sku'] == 'yes' ? true : false,
 				'sku_order' => isset( $component_data['affect_sku_order'] ) ? $component_data['affect_sku_order'] : false,
-				'sku_default' => isset( $component_data['affect_sku_default'] ) ? (string) $component_data['affect_sku_default'] : false,
+        'sku_default' => isset( $component_data['affect_sku_default'] ) ? (string) $component_data['affect_sku_default'] : false,
 				'options' => $options,
 				'assigned_ids' => isset( $component_data['assigned_ids'] ) ? $component_data['assigned_ids'] : false,
 				'price_formula' => isset( $component_data['price_formula'] ) ? $component_data['price_formula'] : false,
 				'use_tag_numbers' => isset($component_data['tag_numbers'] ) && $component_data['tag_numbers'] === 'yes' ? true : false,
 				'sovereign' => isset( $component_data['sovereign'] ) && $component_data['sovereign'] === 'yes' ? true : false
-			], $component_id, $this );
+      ], $component_id, $this );
 			
 		}
 

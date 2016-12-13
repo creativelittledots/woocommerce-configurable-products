@@ -39,7 +39,7 @@ class WC_CP_Cart {
 			
 			$cart_item['data']->variation_id = 999;
 			
-			$cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->id, $product->variation_id, $request );
+      $cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->id, $product->variation_id, $request );
 			
 			$cart_item['data']->set_cart_item_data($cart_item);
 			
