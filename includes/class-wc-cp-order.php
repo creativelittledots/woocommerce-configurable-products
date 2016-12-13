@@ -53,42 +53,8 @@ class WC_CP_Order {
 			$product = wc_get_product( $product_id );
 			
 			if( $product->is_type( 'composite' ) ) { 
-			
-				$quantity     = (int) $item['qty'];
-				$variations   = array();
-				$cart_item_data = apply_filters( 'woocommerce_order_again_cart_item_data', array(), $item, $order );
-	
-				foreach ( $item['item_meta'] as $meta_name => $meta_value ) {
-					
-					// Skip hidden core fields 
-                    if ( in_array( $meta_name, apply_filters( 'woocommerce_hidden_order_itemmeta', array( 
-						'_qty',  
-						'_tax_class',  
-						'_product_id',  
-						'_variation_id',  
-						'_line_subtotal',  
-						'_line_subtotal_tax',  
-						'_line_total',  
-						'_line_tax',  
-						'_line_tax_data'
-					) ) ) ) { 
-						
-                        continue; 
-                        
-                	} 
-					
-					$variations[ $meta_name ] = $meta_value[0];
-					
-				}
 				
-				$cart_item_data['composite']['price'] = $item['item_meta']['_line_subtotal'][0];
-	
-				// Add to cart validation
-				if ( ! apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variations, $cart_item_data ) ) {
-					continue;
-				}
-	
-				WC()->cart->add_to_cart( $product_id, $quantity, null, $variations, $cart_item_data );
+				$product->order_again($item);
 				
 			}
 			

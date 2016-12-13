@@ -16,13 +16,11 @@ class WC_CP_Cart {
 
 		// Modify cart item data for composite products
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'wc_cp_add_cart_item_filter' ), 10, 2 );
+		
+		add_filter( 'woocommerce_add_cart_item_data', array($this, 'wc_cp_add_cart_item_data'), 10, 3 );
 
 		// Preserve data in cart
 		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'wc_cp_get_cart_data_from_session' ), 10, 2 );
-		
-		add_filter( 'woocommerce_composite_get_price', array($this, 'wc_cp_get_price'), 10, 2 );
-		
-		add_filter( 'woocommerce_composite_product_weight', array($this, 'wc_cp_get_weight'), 10, 2 );
 			
 	}
 
@@ -30,10 +28,9 @@ class WC_CP_Cart {
 	 * Modifies cart item data - important for the first calculation of totals only.
 	 *
 	 * @param  array $cart_item
-	 * @param  string $cart_item_key
 	 * @return array
 	 */
-	public function wc_cp_add_cart_item_filter( $cart_item, $cart_item_key ) {
+	public function wc_cp_add_cart_item_filter( $cart_item, $cart_item_key, $request = true ) {
 
 		// Get product type
 		$product = $cart_item['data'];
@@ -42,12 +39,33 @@ class WC_CP_Cart {
 			
 			$cart_item['data']->variation_id = 999;
 			
-			$cart_item['composite']['price'] = str_replace( ',', '', ! empty( $cart_item['composite']['price'] ) ? $cart_item['composite']['price'] : ( ! empty( $_REQUEST['product_price'] ) ? $_REQUEST['product_price'] : $cart_item['data']->price ) );
+			$cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->id, $product->variation_id, $request );
 			
-			$cart_item['variation']['Weight'] = str_replace( ',', '', ! empty( $cart_item['variation']['Weight'] ) ? $cart_item['variation']['Weight'] : ( ! empty( $_REQUEST['product_weight'] ) ? $_REQUEST['product_weight'] : $cart_item['data']->weight ) );
-			$cart_item['variation']['SKU'] = ! empty( $cart_item['variation']['SKU'] ) ? $cart_item['variation']['SKU'] : ( ! empty( $_REQUEST['product_sku'] ) ? $_REQUEST['product_sku'] : '' );
+			$cart_item['data']->set_cart_item_data($cart_item);
 			
-			if( ! empty( $_REQUEST['selections'] ) && is_array( $_REQUEST['selections'] ) ) {
+		}		
+
+		return $cart_item;
+
+	}
+	
+	public function wc_cp_add_cart_item_data($cart_item, $product_id, $variation_id, $request = true) {
+		
+		$product = wc_get_product($product_id);
+		
+		if( $product->is_type('composite') ) {
+		
+			$cart_item['composite']['price'] = str_replace( ',', '', ! empty( $cart_item['composite']['price'] ) ? $cart_item['composite']['price'] : ( ! empty( $_REQUEST['product_price'] ) && $request ? $_REQUEST['product_price'] : $product->price ) );
+			
+			$cart_item['composite']['sku'] = str_replace( ',', '', ! empty( $cart_item['composite']['sku'] ) ? $cart_item['composite']['sku'] : ( ! empty( $_REQUEST['product_sku'] ) && $request ? $_REQUEST['product_sku'] : $product->sku ) );
+			
+			$cart_item['variation']['Weight'] = str_replace( ',', '', ! empty( $cart_item['variation']['Weight'] ) ? $cart_item['variation']['Weight'] : ( ! empty( $_REQUEST['product_weight'] ) && $request ? $_REQUEST['product_weight'] : ( $product->weight . strtoupper( get_option('woocommerce_weight_unit' ) ) ) ) );
+			
+			$cart_item['composite']['weight'] = str_replace( ',', '', ! empty( $cart_item['composite']['weight'] ) && abs($cart_item['composite']['weight']) ? $cart_item['composite']['weight'] : ( ! empty( $_REQUEST['product_weight_clean'] ) && $request ? $_REQUEST['product_weight_clean'] : str_replace( strtoupper( get_option('woocommerce_weight_unit' ) ), '', $cart_item['variation']['Weight'] ) ) );
+			
+			$cart_item['variation']['SKU'] = ! empty( $cart_item['variation']['SKU'] ) ? $cart_item['variation']['SKU'] : $cart_item['composite']['sku'];
+			
+			if( $request && ! empty( $_REQUEST['selections'] ) && is_array( $_REQUEST['selections'] ) ) {
 				
 				foreach($_REQUEST['selections'] as $selections) {
 					
@@ -65,41 +83,9 @@ class WC_CP_Cart {
 				
 			}
 			
-		}		
-
+		}
+		
 		return $cart_item;
-
-	}
-	
-	public function wc_cp_get_price($price, $product) {
-		
-		foreach(WC()->cart->cart_contents as $item) {
-		
-			if( $product->id == $item['data']->id ) {
-				
-				$price = ! empty( $item['composite']['price'] ) ? $item['composite']['price'] : $price;
-				
-			}
-			
-		}
-		
-		return $price;
-		
-	}
-	
-	public function wc_cp_get_weight($weight, $product) {
-		
-		foreach(WC()->cart->cart_contents as $item) {
-		
-			if( $product->id == $item['data']->id ) {
-				
-				return $weight = ! empty( $item['variation']['Weight'] ) ? $item['variation']['Weight'] : $weight;
-				
-			}
-			
-		}
-		
-		return $weight;
 		
 	}
 
@@ -112,7 +98,7 @@ class WC_CP_Cart {
 	 */
 	public function wc_cp_get_cart_data_from_session( $cart_item, $item_session_values ) {
 		
-		$cart_item = $this->wc_cp_add_cart_item_filter( $cart_item, null );
+		$cart_item = $this->wc_cp_add_cart_item_filter( $cart_item, null, false );
 
 		return $cart_item;
 	}
