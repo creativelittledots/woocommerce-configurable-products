@@ -28,6 +28,8 @@ class WC_Product_Composite extends WC_Product {
 	public $base_regular_price;
 
 	private $price_meta;
+	
+	private $cart_item_data = array();
 
 	public $min_composite_price;
 	public $min_composite_regular_price;
@@ -71,19 +73,43 @@ class WC_Product_Composite extends WC_Product {
 	 */
 	public function get_price() {
 		
+		if( $price = $this->get_cart_price() ) {
+			
+			return (float) $price;
+			
+		}
+		
 		return (float) apply_filters( 'woocommerce_composite_get_price', $this->get_raw_price(), $this );
+		
+	}
+	
+	public function get_sku() {
+		
+		if( $sku = $this->get_cart_sku() ) {
+			
+			return $sku;
+			
+		}
+		
+		return parent::get_sku();
 		
 	}
 	
 	public function get_base_weight() {
 		
-		return apply_filters( 'woocommerce_composite_product_base_weight', apply_filters( 'woocommerce_composite_product_get_base_weight', $this->base_weight ? $this->base_weight : '' ), $this );
+		return (float) apply_filters( 'woocommerce_composite_product_base_weight', apply_filters( 'woocommerce_composite_product_get_base_weight', $this->base_weight ? $this->base_weight : '' ), $this );
 		
 	}
 	
 	public function get_weight() {
 		
-		return apply_filters( 'woocommerce_composite_product_weight', apply_filters( 'woocommerce_composite_product_get_weight', $this->weight ? $this->weight : '' ), $this );
+		if( $weight = $this->get_cart_weight() ) {
+			
+			return (float) $weight;
+			
+		}
+		
+		return (float) apply_filters( 'woocommerce_composite_product_weight', apply_filters( 'woocommerce_composite_product_get_weight', $this->weight ? $this->weight : '' ), $this );
 		
 	}
 	
@@ -104,6 +130,30 @@ class WC_Product_Composite extends WC_Product {
 			return parent::get_price();
 			
 		}
+		
+	}
+	
+	public function set_cart_item_data($cart_item_data) {
+		
+		$this->cart_item_data = $cart_item_data;
+		
+	}
+	
+	public function get_cart_sku() {
+		
+		return isset( $this->cart_item_data['composite']['sku'] ) ? $this->cart_item_data['composite']['sku'] : null;
+		
+	}
+	
+	public function get_cart_price() {
+		
+		return isset( $this->cart_item_data['composite']['price'] ) ? (float) $this->cart_item_data['composite']['price'] : null;
+		
+	}
+	
+	public function get_cart_weight() {
+		
+		return isset( $this->cart_item_data['composite']['weight'] ) ? (float) $this->cart_item_data['composite']['weight'] : null;
 		
 	}
 
@@ -278,8 +328,8 @@ class WC_Product_Composite extends WC_Product {
 				
 			}
 			
-			$composite_price = $this->get_raw_price();
-			$composite_regular_price = $this->get_raw_regular_price();
+			$composite_price = $this->base_price;
+			$composite_regular_price = $this->base_regular_price;
 			$composite_price_incl = $this->get_price_including_tax( 1, $composite_price );
 			$composite_price_excl = $this->get_price_excluding_tax( 1, $composite_price );
 
@@ -294,8 +344,8 @@ class WC_Product_Composite extends WC_Product {
 
 		} else {
 
-			$this->min_composite_price = $this->get_raw_price();
-			$this->min_composite_regular_price = $this->get_raw_regular_price();
+			$this->min_composite_price = $this->base_price;
+			$this->min_composite_regular_price = $this->base_regular_price;
 			$this->min_composite_price_incl_tax = $this->get_price_including_tax( 1, $this->min_composite_price );
 			$this->min_composite_price_excl_tax = $this->get_price_excluding_tax( 1, $this->min_composite_price );
 
@@ -348,20 +398,22 @@ class WC_Product_Composite extends WC_Product {
 
 			// Get the price
 			if ( $this->min_composite_price === '' ) {
+				
+				$args = is_singular('product') ? array(
+					'price_format' => '%1$s<span rv-text="product:price">%2$s</span>'
+				) : array();
 
 				$price = apply_filters( 'woocommerce_composite_empty_price_html', wc_price( 
-				$this->min_composite_price, 
-				array(
-					'price_format' => '%1$s<span rv-text="product:price">%2$s</span>'
-				) ) . $this->get_price_suffix(), $this );
+				$this->min_composite_price, $args ) . $this->get_price_suffix(), $this );
 
 			} else {
+				
+				$args = is_singular('product') ? array(
+					'price_format' => '%1$s<span rv-text="product:price">%2$s</span>'
+				) : array();
 
 				$price = apply_filters( 'woocommerce_composite_price_html', $this->get_price_html_from_text() . wc_price( 
-				$this->min_composite_price, 
-				array(
-					'price_format' => '%1$s<span rv-text="product:price">%2$s</span>'
-				) ) . 
+				$this->min_composite_price, $args ) . 
 				$this->get_price_suffix(), $this );
 
 			}
@@ -470,13 +522,13 @@ class WC_Product_Composite extends WC_Product {
 				'suffix' => isset( $component_data['suffix'] ) ? $component_data['suffix'] : false,
 				'affect_sku' => isset( $component_data['affect_sku'] ) && $component_data['affect_sku'] == 'yes' ? true : false,
 				'sku_order' => isset( $component_data['affect_sku_order'] ) ? $component_data['affect_sku_order'] : false,
-				'sku_default' => isset( $component_data['affect_sku_default'] ) ? $component_data['affect_sku_default'] : false,
+        'sku_default' => isset( $component_data['affect_sku_default'] ) ? (string) $component_data['affect_sku_default'] : false,
 				'options' => $options,
 				'assigned_ids' => isset( $component_data['assigned_ids'] ) ? $component_data['assigned_ids'] : false,
 				'price_formula' => isset( $component_data['price_formula'] ) ? $component_data['price_formula'] : false,
 				'use_tag_numbers' => isset($component_data['tag_numbers'] ) && $component_data['tag_numbers'] === 'yes' ? true : false,
 				'sovereign' => isset( $component_data['sovereign'] ) && $component_data['sovereign'] === 'yes' ? true : false
-			]), $component_id, $this );
+      ], $component_id, $this );
 			
 		}
 
@@ -683,6 +735,48 @@ class WC_Product_Composite extends WC_Product {
 			$this->sync_composite();
 
 		return $this->component_options[ $component_id ];
+		
+	}
+	
+	public function order_again($item) {
+		
+		$quantity     = (int) $item['qty'];
+		$variations   = array();
+		$cart_item_data = apply_filters( 'woocommerce_order_again_cart_item_data', array(), $item, $order );
+
+		foreach ( $item['item_meta'] as $meta_name => $meta_value ) {
+			
+			// Skip hidden core fields 
+            if ( in_array( $meta_name, apply_filters( 'woocommerce_hidden_order_itemmeta', array( 
+				'_qty',  
+				'_tax_class',  
+				'_product_id',  
+				'_variation_id',  
+				'_line_subtotal',  
+				'_line_subtotal_tax',  
+				'_line_total',  
+				'_line_tax',  
+				'_line_tax_data'
+			) ) ) ) { 
+				
+                continue; 
+                
+        	} 
+			
+			$variations[ $meta_name ] = $meta_value[0];
+			
+		}
+		
+		$cart_item_data['composite']['price'] = $item['item_meta']['_line_subtotal'][0];
+
+		// Add to cart validation
+		if ( ! apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variations, $cart_item_data ) ) {
+			
+			continue;
+			
+		}
+
+		WC()->cart->add_to_cart( $this->id, $quantity, null, $variations, $cart_item_data );
 		
 	}
 

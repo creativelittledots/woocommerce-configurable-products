@@ -623,7 +623,7 @@ jQuery(document).ready(function($) {
 		},
 		add_to_cart: function(e) {
     		
-    		if( ! product.get( 'adding_to_cart' ) ) {
+    		if( ! product.get( 'adding_to_cart' ) && ! product.get('errors') ) {
         		
         		product.set( 'adding_to_cart', true );
 			
@@ -635,6 +635,7 @@ jQuery(document).ready(function($) {
     					'product_sku': product.get('sku'),
     					'quantity': parseInt( product.get('quantity') ),
     					'product_price': parseFloat( product.get('price').replace(',', '') ),
+              'product_weight_clean': parseFloat( product.get('weight') ),
     					'product_weight': product.get('weight') + wc_cp_product_data.weight_unit,
     					'selections': product.get_selections()
     				},
