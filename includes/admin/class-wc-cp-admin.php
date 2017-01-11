@@ -2027,7 +2027,7 @@ class WC_CP_Admin {
 							
 							<?php
 			
-								$selected_recommended = $data[ 'recommended_id' ];
+								$selected_recommended = ! empty( $data[ 'recommended_id' ] ) ? $data[ 'recommended_id' ] : false;
 				
 								foreach ( $item_ids as $item_id ) {
 				

@@ -767,7 +767,19 @@ class WC_Product_Composite extends WC_Product {
 			
 		}
 		
-		$cart_item_data['composite']['price'] = $item['item_meta']['_line_subtotal'][0];
+		if( $quantity ) {
+			            
+            if( get_option( 'woocommerce_prices_include_tax', 'no' ) == 'yes' ) {
+                
+                $cart_item_data['composite']['price'] = ($item['line_subtotal']+$item['line_subtotal_tax'])/ $quantity;
+                
+            } else {
+                
+                $cart_item_data['composite']['price'] = ($item['line_subtotal'])/ $quantity;
+                
+            }
+            
+        }
 
 		// Add to cart validation
 		if ( ! apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variations, $cart_item_data ) ) {
