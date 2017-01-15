@@ -216,8 +216,6 @@ class WC_CP_Admin {
 
 					if ( $exclude === 'no' ) {
 						$modifier = 'in';
-					} elseif ( $exclude === 'masked' ) {
-						$modifier = 'masked';
 					} else {
 						$modifier = 'not-in';
 					}
@@ -232,10 +230,9 @@ class WC_CP_Admin {
 							<select class="bto_scenario_modifier bto_scenario_exclude" name="bto_scenario_data[<?php echo $id; ?>][modifier][<?php echo $component_id; ?>]">
 								<option <?php selected( $modifier, 'in', true ); ?> value="in"><?php echo __( 'selection is' ); ?></option>
 								<option <?php selected( $modifier, 'not-in', true ); ?> value="not-in"><?php echo __( 'selection is not' ); ?></option>
-								<option <?php selected( $modifier, 'masked', true ); ?> value="masked"><?php echo __( 'selection is masked' ); ?></option>
 							</select>
 						</div>
-						<div class="bto_scenario_selector_inner" <?php echo $modifier === 'masked' ? 'style="display:none"' : ''; ?>><?php
+						<div class="bto_scenario_selector_inner"><?php
 
 							$component_options = $woocommerce_composite_products->api->get_component_options( $component_data );
 
@@ -1425,7 +1422,6 @@ class WC_CP_Admin {
 			$bto_scenario_data          = array();
 			$ordered_bto_scenario_data  = array();
 			$compat_group_actions_exist = false;
-			$masked_rules_exist         = false;
 
 			if ( isset( $posted_composite_data[ 'bto_scenario_data' ] ) ) {
 
@@ -1494,14 +1490,6 @@ class WC_CP_Admin {
 								$bto_scenario_data[ $scenario_id ][ 'modifier' ][ $group_id ] = 'in';
 							}
 
-						} elseif ( isset( $scenario_post_data[ 'modifier' ][ $group_id ] ) && $scenario_post_data[ 'modifier' ][ $group_id ] === 'masked' ) {
-							$bto_scenario_data[ $scenario_id ][ 'modifier' ][ $group_id ] = 'masked';
-
-							$masked_rules_exist = true;
-
-							if ( ! $woocommerce_composite_products->api->scenario_contains_product( $scenario_post_data, $group_id, 0 ) ) {
-								$scenario_post_data[ 'component_data' ][ $group_id ][] = 0;
-							}
 						} else {
 							$bto_scenario_data[ $scenario_id ][ 'modifier' ][ $group_id ] = 'in';
 						}
