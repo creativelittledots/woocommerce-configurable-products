@@ -488,13 +488,13 @@ class WC_Product_Composite extends WC_Product {
 					$terms        = get_the_terms( $product_id, 'product_type' );
 					$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
                     
-                    $price = (float) isset( $component_data['price_options'][$product_id] ) && $component_data['price_options'][$product_id] !== '' ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$product_id], $product, $this ) : $product->get_price();
+                    $price = (float) isset( $component_data['price_options'][$product_id] ) && $component_data['price_options'][$product_id] !== '' ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$product_id], $product, $this ) : ( $product->get_price() ? $product->get_price() : 0 );
 				
 					$options[] = array(
 						'id' => $product_id,
 						'title' => $product->get_title(),
 						'price' => $price,
-						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : $product->get_regular_price(),
+						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : ( $product->get_regular_price() ? $product->get_regular_price() : 0 ),
 						'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
 						'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
 						'formula' => isset( $component_data['formula_options'][$product_id] ) && $component_data['formula_options'][$product_id] !== '' ? $component_data['formula_options'][$product_id] : '{p}', 
