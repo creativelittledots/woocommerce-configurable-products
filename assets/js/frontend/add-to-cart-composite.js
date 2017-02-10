@@ -445,8 +445,8 @@ jQuery(document).ready(function($) {
 					
 						if( selection instanceof Option ) {
 							
-							price += parseFloat(selection.get('price') ? selection.get('price') : 0);
-							price_incl_tax += parseFloat(selection.get('price_incl_tax') ? selection.get('price_incl_tax') : 0);
+							price += parseFloat(selection.get('price'));
+							price_incl_tax += parseFloat(selection.get('price_incl_tax'));
 							weight += parseFloat(selection.get('weight'));
 							
 							if( product.get('build_sku') && component.get('affect_sku') ) {
@@ -483,8 +483,8 @@ jQuery(document).ready(function($) {
 							
 						} else if( selection instanceof PriceFormula ) {
 							
-							price += parseFloat(selection.get('price') ? selection.get('price') : 0);
-							price_incl_tax += parseFloat(selection.get('price_incl_tax') ? selection.get('price_incl_tax') : 0);
+							price += parseFloat(selection.get('price'));
+							price_incl_tax += parseFloat(selection.get('price_incl_tax'));
 							
 							component.set('error', selection.get('error'));
 							

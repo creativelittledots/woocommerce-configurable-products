@@ -481,38 +481,79 @@ class WC_Product_Composite extends WC_Product {
 			
 			$options = array();
 			
-			foreach($component_data['assigned_ids'] as $product_id) {
+			$data_source = $component_data['option_data_source'] ? $component_data['option_data_source'] : 'products';
+			
+			switch( $data_source ) {
 				
-				if( $product = wc_get_product($product_id) ) {
-					
-					$terms        = get_the_terms( $product_id, 'product_type' );
-					$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
-                    
-                    $price = (float) isset( $component_data['price_options'][$product_id] ) && $component_data['price_options'][$product_id] !== '' ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$product_id], $product, $this ) : ( $product->get_price() ? $product->get_price() : 0 );
+				case 'attributes' :
+
+					foreach($component_data['assigned_attribute_term_ids'] as $term_id) {
 				
-					$options[] = array(
-						'id' => $product_id,
-						'title' => $product->get_title(),
-						'price' => $price,
-						'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : ( $product->get_regular_price() ? $product->get_regular_price() : 0 ),
-						'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
-						'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
-						'formula' => isset( $component_data['formula_options'][$product_id] ) && $component_data['formula_options'][$product_id] !== '' ? $component_data['formula_options'][$product_id] : '{p}', 
-						'sku' => isset( $component_data['sku_options'][$product_id] ) && $component_data['sku_options'][$product_id] !== '' ? $component_data['sku_options'][$product_id] : $product->get_sku(),
-						'weight' => (float) $product->get_weight(),
-						'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_product( $composite_scenario_meta, $component_id, $product_id, '', $product_type ),
-					);
-					
-				}
+						if( $term = get_term_by_id( $term_id ) ) {
+		                    
+		                    $price = (float) isset( $component_data['price_options'][$term_id] ) && $component_data['price_options'][$term_id] !== '' ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$term_id], $term, $this ) : get_term_meta( $term_id, '_price', true );
+		                    
+		                    $product = new WC_Product();
+						
+							$options[] = array(
+								'id' => $term_id,
+								'title' => $term->name,
+								'price' => $price,
+								'regular_price' => (float) $price,
+								'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
+								'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
+								'formula' => isset( $component_data['formula_options'][$term_id] ) && $component_data['formula_options'][$term_id] !== '' ? $component_data['formula_options'][$term_id] : '{p}', 
+								'sku' => isset( $component_data['sku_options'][$term_id] ) && $component_data['sku_options'][$term_id] !== '' ? $component_data['sku_options'][$term_id] : get_term_meta( $term_id, '_sku', true ),
+								'weight' => (float) get_term_meta( $term_id, '_weight', true ),
+								'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_attribute_term( $composite_scenario_meta, $component_id, $term_id ),
+							);
+							
+						}
+						
+					}
+				
+				break;
+				
+				default :
+				
+					foreach($component_data['assigned_ids'] as $product_id) {
+				
+						if( $product = wc_get_product($product_id) ) {
+							
+							$terms        = get_the_terms( $product_id, 'product_type' );
+							$product_type = ! empty( $terms ) && isset( current( $terms )->name ) ? sanitize_title( current( $terms )->name ) : 'simple';
+		                    
+		                    $price = (float) isset( $component_data['price_options'][$product_id] ) && $component_data['price_options'][$product_id] !== '' ? apply_filters( 'woocommerce_composite_component_get_price', $component_data['price_options'][$product_id], $product, $this ) : $product->get_price();
+						
+							$options[] = array(
+								'id' => $product_id,
+								'title' => $product->get_title(),
+								'price' => $price,
+								'regular_price' => (float) ! empty( $component_data['price_options'][$product_id] ) ? $price : $product->get_regular_price(),
+								'price_incl_tax' => (float) $product->get_price_including_tax( 1, $price ),
+								'price_excl_tax' => (float) $product->get_price_excluding_tax( 1, $price ),
+								'formula' => isset( $component_data['formula_options'][$product_id] ) && $component_data['formula_options'][$product_id] !== '' ? $component_data['formula_options'][$product_id] : '{p}', 
+								'sku' => isset( $component_data['sku_options'][$product_id] ) && $component_data['sku_options'][$product_id] !== '' ? $component_data['sku_options'][$product_id] : $product->get_sku(),
+								'weight' => (float) $product->get_weight(),
+								'scenarios' => $woocommerce_composite_products->api->get_scenarios_for_product( $composite_scenario_meta, $component_id, $product_id, '', $product_type ),
+							);
+							
+						}
+						
+					}
+				
+				break;
 				
 			}
 			
 			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
 				'id' => $component_data['component_id'],
 				'style' => $component_data['option_style'] ? $component_data['option_style'] : $this->selections_style,
+				'data_source' => $data_source,
 				'title' => isset( $component_data['title'] ) ? $component_data['title'] : false,
 				'description' => isset( $component_data['description'] ) ? htmlspecialchars_decode( $component_data['description'] ) : false,
 				'optional' => isset( $component_data['optional'] ) && $component_data['optional'] === 'yes' ? true : false,
+				'nest_attributes' => isset( $component_data['nest_attributes'] ) && $component_data['nest_attributes'] === 'yes' ? true : false,
 				'default_id' => isset( $component_data['default_id'] ) ? $component_data['default_id'] : false,
 				'default_value' => isset( $component_data['default_value'] ) ? $component_data['default_value'] : false,
 				'recommended_id' => isset( $component_data['recommended_id'] ) ? $component_data['recommended_id'] : false,
@@ -525,6 +566,8 @@ class WC_Product_Composite extends WC_Product {
         'sku_default' => isset( $component_data['affect_sku_default'] ) ? (string) $component_data['affect_sku_default'] : false,
 				'options' => $options,
 				'assigned_ids' => isset( $component_data['assigned_ids'] ) ? $component_data['assigned_ids'] : false,
+				'assigned_attribute_ids' => isset( $component_data['assigned_attribute_ids'] ) ? $component_data['assigned_attribute_ids'] : false,
+				'assigned_attribute_term_ids' => isset( $component_data['assigned_attribute_term_ids'] ) ? $component_data['assigned_attribute_term_ids'] : false,
 				'price_formula' => isset( $component_data['price_formula'] ) ? $component_data['price_formula'] : false,
 				'use_tag_numbers' => isset($component_data['tag_numbers'] ) && $component_data['tag_numbers'] === 'yes' ? true : false,
 				'sovereign' => isset( $component_data['sovereign'] ) && $component_data['sovereign'] === 'yes' ? true : false

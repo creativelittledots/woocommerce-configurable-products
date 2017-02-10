@@ -17,17 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Required functions
-if ( ! function_exists( 'woothemes_queue_update' ) ) {
-	require_once( 'woo-includes/woo-functions.php' );
-}
-
-// Check if WooCommerce is active
-if ( ! is_woocommerce_active() ) {
-	return;
-}
-
-class WC_Composite_Products {
+class WC_Configurable_Products {
 
 	public $version 	= '3.1.0';
 	public $required 	= '2.1.0';
@@ -64,6 +54,8 @@ class WC_Composite_Products {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 			return false;
 		}
+		
+		include_once( 'includes/class-wc-cp-install.php' );
 
 		// Functions for 2.X back-compat
 		include_once( 'includes/wc-cp-functions.php' );
@@ -117,6 +109,7 @@ class WC_Composite_Products {
 	public function init() {
 
 		load_plugin_textdomain( 'woocommerce-composite-products', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+		
 	}
 
 	/**
@@ -204,4 +197,4 @@ class WC_Composite_Products {
 	
 }
 
-$GLOBALS[ 'woocommerce_composite_products' ] = new WC_Composite_Products();
+$GLOBALS[ 'woocommerce_configurable_products' ] = new WC_Configurable_Products();

@@ -139,6 +139,33 @@ class WC_CP_API {
 		return $scenarios;
 		
 	}
+	
+	/**
+	 * Returns an array of all scenarios where a particular component option (attribute term) is active.
+	 *
+	 * @param  array   $scenario_meta
+	 * @param  string  $group_id
+	 * @param  int     $term_id
+	 * @return array
+	 */
+	public function get_scenarios_for_attribute_term( $scenario_meta, $group_id, $term_id ) {
+
+		if ( empty( $scenario_meta ) ) {
+			return array();
+		}
+
+		$scenarios = array();
+
+		foreach ( $scenario_meta as $scenario_id => $scenario_data ) {
+
+			if ( $this->attribute_term_active_in_scenario( $scenario_data, $group_id, $term_id ) ) {
+				$scenarios[] = ( string ) $scenario_id;
+			}
+		}
+
+		return $scenarios;
+		
+	}
 
 	/**
 	 * Returns true if a product/variation id of a particular component is present in the scenario meta array. Also @see product_active_in_scenario function.
@@ -151,6 +178,23 @@ class WC_CP_API {
 	public function scenario_contains_product( $scenario_data, $group_id, $product_id ) {
 
 		if ( isset( $scenario_data[ 'component_data' ] ) && ! empty( $scenario_data[ 'component_data' ][ $group_id ] ) && is_array( $scenario_data[ 'component_data' ][ $group_id ] ) && in_array( $product_id, $scenario_data[ 'component_data' ][ $group_id ] ) ) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * Returns true if an attribute term id id of a particular component is present in the scenario meta array. Also @see attribute_term_active_in_scenario function.
+	 *
+	 * @param  array   $scenario_data
+	 * @param  string  $group_id
+	 * @param  int     $term_id
+	 * @return boolean
+	 */
+	public function scenario_contains_attribute_term( $scenario_data, $group_id, $term_id ) {
+
+		if ( isset( $scenario_data[ 'component_data' ] ) && ! empty( $scenario_data[ 'component_data' ][ $group_id ] ) && is_array( $scenario_data[ 'component_data' ][ $group_id ] ) && in_array( $term_id, $scenario_data[ 'component_data' ][ $group_id ] ) ) {
 			return true;
 		} else {
 			return false;
@@ -210,6 +254,57 @@ class WC_CP_API {
 
 		return $product_active_in_scenario;
 	}
+	
+	/**
+	 * Returns true if an attribute term id of a particular component is present in the scenario meta array. Uses 'scenario_contains_attribute_term' but also takes exclusion rules into account.
+	 *
+	 * @param  array   $scenario_data
+	 * @param  string  $group_id
+	 * @param  int     $term_id
+	 * @return boolean
+	 */
+	public function attribute_term_active_in_scenario( $scenario_data, $group_id, $term_id) {
+
+		if ( empty( $scenario_data[ 'component_data' ] ) || empty( $scenario_data[ 'component_data' ][ $group_id ] ) ) {
+			return true;
+		}
+
+		$id = $term_id;
+
+		if ( $this->scenario_contains_attribute_term( $scenario_data, $group_id, 0 ) ) {
+			return true;
+		}
+
+		$exclude = false;
+
+		if ( isset( $scenario_data[ 'modifier' ][ $group_id ] ) && $scenario_data[ 'modifier' ][ $group_id ] === 'not-in' ) {
+			$exclude = true;
+		} elseif ( isset( $scenario_data[ 'exclude' ][ $group_id ] ) && $scenario_data[ 'exclude' ][ $group_id ] === 'yes' ) {
+			$exclude = true;
+		}
+
+		$attribute_term_active_in_scenario = false;
+
+		if ( $this->scenario_contains_attribute_term( $scenario_data, $group_id, $id ) ) {
+			if ( ! $exclude ) {
+				$attribute_term_active_in_scenario = true;
+			} else {
+				$attribute_term_active_in_scenario = false;
+			}
+		} else {
+			if ( ! $exclude ) {
+
+				$attribute_term_active_in_scenario = false;
+
+			} else {
+
+				$attribute_term_active_in_scenario = true;
+				
+			}
+		}
+
+		return $attribute_term_active_in_scenario;
+	}
 
 	/**
 	 * Return a formatted product title based on id.
@@ -239,18 +334,59 @@ class WC_CP_API {
 			$identifier = '#' . $id;
 		}
 
-		return $this->format_product_title( $title, $identifier );
+		return $this->format_item_title( $title, $identifier );
+	}
+	
+	/**
+	 * Return a formatted attribute term title based on id.
+	 *
+	 * @param  int    $attribute_term_id
+	 * @return string
+	 */
+	public function get_attribute_term_title( $attribute_term_id ) {
+		
+		$term = $attribute_term_id instanceof WP_Term ? $attribute_term_id : get_term_by_id( $attribute_term_id );
+
+		$title = $term->name;
+		$id    = $term->term_id;
+		$sku   = get_term_meta( $attribute_term_id, '_sku', true );
+
+		if ( ! $title ) {
+			return false;
+		}
+		
+		if ( $sku ) {
+			$identifier = $sku;
+		} else {
+			$identifier = '#' . $id;
+		}
+
+		return $this->format_item_title( $title, $identifier );
+		
+	}
+	
+	/**
+	 * Return a formatted attribute title based on id.
+	 *
+	 * @param  int    $attribute_id
+	 * @param  string    $taxonomy
+	 * @return string
+	 */
+	public function get_attribute_title( $attribute_id ) {
+
+		return $this->format_item_title( wc_attribute_label( wc_attribute_taxonomy_name_by_id( $attribute_id ) ), '#' . $attribute_id );
+		
 	}
 
 	/**
-	 * Format a product title.
+	 * Format a item title.
 	 *
 	 * @param  string $title
 	 * @param  string $identifier
 	 * @param  string $meta
 	 * @return string
 	 */
-	public function format_product_title( $title, $identifier = '', $meta = '' ) {
+	public function format_item_title( $title, $identifier = '', $meta = '' ) {
 
 		if ( $identifier && $meta ) {
 			$title = sprintf( _x( '%1$s &ndash; %2$s &mdash; %3$s', 'product title followed by sku and meta', 'woocommerce-composite-products' ), $identifier, $title, $meta );

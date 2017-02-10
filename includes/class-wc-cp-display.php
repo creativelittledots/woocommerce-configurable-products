@@ -54,9 +54,9 @@ class WC_CP_Display {
 	 */
 	public function wc_cp_add_to_cart() {
 
-		global $woocommerce_composite_products;
+		global $woocommerce_configurable_products;
 
-		wc_get_template( 'single-product/add-to-cart/composite.php', array(), false, $woocommerce_composite_products->plugin_path() . '/templates/' );
+		wc_get_template( 'single-product/add-to-cart/composite.php', array(), false, $woocommerce_configurable_products->plugin_path() . '/templates/' );
 		
 	}
 
@@ -66,7 +66,7 @@ class WC_CP_Display {
 	 */
 	public function wc_cp_form() {
 
-		global $product, $woocommerce_composite_products;
+		global $product, $woocommerce_configurable_products;
 		
 		if( ! $product->is_type( 'composite' ) || ! $product->get_composite_data() ) {
 			return;
@@ -100,7 +100,7 @@ class WC_CP_Display {
 
 		wc_get_template( 'single-product/composite.php', array(
 			'product'          => $product
-		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+		), '', $woocommerce_configurable_products->plugin_path() . '/templates/' );
 
 	}
 
@@ -129,7 +129,7 @@ class WC_CP_Display {
 	 */
 	public function wc_cp_frontend_scripts() {
 
-		global $woocommerce_composite_products;
+		global $woocommerce_configurable_products;
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
@@ -139,17 +139,17 @@ class WC_CP_Display {
 		// Examples: custom product type scripts and component layered filter scripts
 		$dependencies = apply_filters( 'woocommerce_composite_script_dependencies', $dependencies );
 		
-		wp_register_script( 'backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/backbone.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'backbone', $woocommerce_configurable_products->plugin_url() . '/assets/js/vendor/backbone.min.js', array(), $woocommerce_configurable_products->version );
 		
-		wp_register_script( 'rivets', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.bundled.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets', $woocommerce_configurable_products->plugin_url() . '/assets/js/vendor/rivets.bundled.min.js', array(), $woocommerce_configurable_products->version );
 		
-		wp_register_script( 'rivets-formatters', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.formatters.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets-formatters', $woocommerce_configurable_products->plugin_url() . '/assets/js/vendor/rivets.formatters.min.js', array(), $woocommerce_configurable_products->version );
 		
-		wp_register_script( 'rivets-backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.backbone.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets-backbone', $woocommerce_configurable_products->plugin_url() . '/assets/js/vendor/rivets.backbone.min.js', array(), $woocommerce_configurable_products->version );
 
-		wp_register_script( 'wc-add-to-cart-composite', $woocommerce_composite_products->plugin_url() . '/assets/js/frontend/add-to-cart-composite' . $suffix . '.js', $dependencies, $woocommerce_composite_products->version );
+		wp_register_script( 'wc-add-to-cart-composite', $woocommerce_configurable_products->plugin_url() . '/assets/js/frontend/add-to-cart-composite' . $suffix . '.js', $dependencies, $woocommerce_configurable_products->version );
 
-		wp_register_style( 'wc-composite-single-css', $woocommerce_composite_products->plugin_url() . '/assets/css/frontend/wc-composite-single.css', false, $woocommerce_composite_products->version, 'all' );
+		wp_register_style( 'wc-composite-single-css', $woocommerce_configurable_products->plugin_url() . '/assets/css/frontend/wc-composite-single.css', false, $woocommerce_configurable_products->version, 'all' );
 
 		$params = apply_filters( 'wc_cp_params', array(
 			'currency'                        		 => get_woocommerce_currency_symbol(),
