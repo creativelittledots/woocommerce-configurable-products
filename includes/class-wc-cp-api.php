@@ -132,7 +132,9 @@ class WC_CP_API {
 		foreach ( $scenario_meta as $scenario_id => $scenario_data ) {
 
 			if ( $this->product_active_in_scenario( $scenario_data, $group_id, $product_id, $variation_id, $product_type ) ) {
-				$scenarios[] = ( string ) $scenario_id;
+				if($scenario_data['scenario_actions']['compat_group']['is_active'] == 'yes') {
+					$scenarios[] = ( string ) $scenario_id;
+				}
 			}
 		}
 
