@@ -459,15 +459,12 @@ jQuery(document).ready(function($) {
     							
     							// this is not the first in the progression
     							
-    							$.each(active_scenarios, function(index, scenario) {
-        							
-                                    if( 0 > $.inArray( scenario, selection.get('scenarios') ) ) {
-                                        
-                                        active_scenarios.splice(index, 1);
-                                        
-                                    }
-        							
-    							});
+								for(var i = 0; i < active_scenarios.length; i++) {
+								    if( 0 > $.inArray( active_scenarios[i], selection.get('scenarios') ) ) {
+								        active_scenarios.splice(i, 1);
+								        i--;
+								    }
+								};
     							
 							} else {
     							
