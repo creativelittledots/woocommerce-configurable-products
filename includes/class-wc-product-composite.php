@@ -75,11 +75,11 @@ class WC_Product_Composite extends WC_Product {
 		
 		if( $price = $this->get_cart_price() ) {
 			
-			return (float) $price;
+			return $price;
 			
 		}
 		
-		return (float) apply_filters( 'woocommerce_composite_get_price', $this->get_raw_price(), $this );
+		return apply_filters( 'woocommerce_composite_get_price', $this->get_raw_price(), $this );
 		
 	}
 	
@@ -421,8 +421,9 @@ class WC_Product_Composite extends WC_Product {
 			return apply_filters( 'woocommerce_get_price_html', $price, $this );
 
 		} else {
-
+			
 			return parent::get_price_html();
+			
 		}
 
 	}
