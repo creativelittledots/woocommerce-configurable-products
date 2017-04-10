@@ -18,12 +18,56 @@ class WC_CP_Cart {
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'wc_cp_add_cart_item_filter' ), 10, 2 );
 		
 		add_filter( 'woocommerce_add_cart_item_data', array($this, 'wc_cp_add_cart_item_data'), 10, 3 );
+		
+		add_filter( 'woocommerce_get_item_data', array($this, 'wc_cp_display_cart_item_data'), 10, 2 );
 
 		// Preserve data in cart
 		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'wc_cp_get_cart_data_from_session' ), 10, 2 );
 			
 	}
+	
+	public function wc_cp_display_cart_item_data($item_data, $cart_item) {
+		
+		if ( $cart_item['data']->is_type( 'composite' ) ) {
+			
+			foreach ( $cart_item['variation'] as $name => $value ) {
 
+                if ( '' === $value )
+                    continue;
+
+                $taxonomy = wc_attribute_taxonomy_name( str_replace( 'attribute_pa_', '', urldecode( $name ) ) );
+
+                // If this is a term slug, get the term's nice name
+                if ( taxonomy_exists( $taxonomy ) ) {
+                    $term = get_term_by( 'slug', $value, $taxonomy );
+                    if ( ! is_wp_error( $term ) && $term && $term->name ) {
+                        $value = $term->name;
+                    }
+                    $label = wc_attribute_label( $taxonomy );
+
+                // If this is a custom option slug, get the options name
+                } else {
+                    $value              = apply_filters( 'woocommerce_variation_option_name', $value );
+                    $product_attributes = $cart_item['data']->get_attributes();
+                    if ( isset( $product_attributes[ str_replace( 'attribute_', '', $name ) ] ) ) {
+                        $label = wc_attribute_label( $product_attributes[ str_replace( 'attribute_', '', $name ) ]['name'] );
+                    } else {
+                        $label = $name;
+                    }
+                }
+
+                $item_data[] = array(
+                    'key'   => $label,
+                    'value' => $value
+                );
+            }	
+			
+		}
+		
+		return $item_data;
+		
+	}
+	
 	/**
 	 * Modifies cart item data - important for the first calculation of totals only.
 	 *
@@ -37,9 +81,7 @@ class WC_CP_Cart {
 
 		if( $product->is_type('composite') ) {
 			
-			$cart_item['data']->variation_id = 999;
-			
-      $cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->id, $product->variation_id, $request );
+			$cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->id, $product->variation_id, $request );
 			
 			$cart_item['data']->set_cart_item_data($cart_item);
 			

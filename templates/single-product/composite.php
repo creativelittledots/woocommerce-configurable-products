@@ -45,7 +45,7 @@ global $woocommerce_composite_products;
 				
 					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append '_0'" rv-name="component:id" rv-value="0" rv-on-change="component.deselect" rv-checked="component:selected" />
 				
-					<label rv-text="component:empty_text" rv-for="'component_' | append component:id | append '_option_' | append '_0'"></label>
+					<label rv-for="'component_' | append component:id | append '_option_' | append '_0'"><span rv-text="component:empty_text"></span></label>
 					
 				</li>
 				
@@ -53,7 +53,7 @@ global $woocommerce_composite_products;
 				
 					<input type="radio" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="component:selected" rv-disabled="option:available | !" />
 					
-					<label rv-html="option:display" rv-for="'component_' | append component:id | append '_option_' | append option.id"></label>
+					<label rv-for="'component_' | append component:id | append '_option_' | append option.id"><span rv-html="option:display"></span></label>
 					
 				</li>
 				
@@ -65,7 +65,7 @@ global $woocommerce_composite_products;
 				
 					<input type="checkbox" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id" rv-on-change="option.select" rv-value="option:id" rv-checked="option:selected" rv-disabled="option:available | !" />
 					
-					<label rv-html="option:display" rv-for="'component_' | append component:id | append '_option_' | append option.id"></label>
+					<label rv-for="'component_' | append component:id | append '_option_' | append option.id"><span rv-html="option:display" </label></label>
 					
 				</li>
 				
