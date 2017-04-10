@@ -735,7 +735,7 @@ class WC_Product_Composite extends WC_Product {
 		if ( ! $this->is_synced() )
 			$this->sync_composite();
 
-		return $this->component_options[ $component_id ];
+		return ! empty( $this->component_options[ $component_id ] ) ? $this->component_options[ $component_id ] : [];
 		
 	}
 	
@@ -790,6 +790,22 @@ class WC_Product_Composite extends WC_Product {
 		}
 
 		WC()->cart->add_to_cart( $this->id, $quantity, null, $variations, $cart_item_data );
+		
+	}
+	
+	public function needs_configuration() {
+		
+		foreach( $this->composite_data as $component_id => $component_data ) {
+			
+			if( ( ! empty( $component_data['optional'] ) && $component_data['optional'] !== 'yes' ) && ! $this->get_component_default_option( $component_id ) ) {
+				
+				return true;
+				
+			}
+			
+		}
+		
+		return false;
 		
 	}
 
