@@ -19,7 +19,9 @@ class WC_CP_Order {
 		// Hide composite configuration metadata in order line items
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'wc_cp_hide_order_item_meta' ) );
 		
-		add_action( 'woocommerce_ordered_again', array($this, 'wc_cp_order_again') );
+		add_action( 'woocommerce_order_again_cart_item_data', array($this, 'wc_cp_order_again_cart_item_data'), 10, 3 );
+		
+		add_action( 'woocommerce_add_to_cart', array($this, 'wc_cp_order_again' ), 10, 6 );
 
 	}
 
@@ -35,28 +37,32 @@ class WC_CP_Order {
 		
 	}
 	
+	public function wc_cp_order_again_cart_item_data( $item_data, $item, $order ) {
+		
+		$product = $order->get_product_from_item( $item );
+		
+		if( $product->is_type('composite') ) {
+			
+			$item_data['wc_cp_order_again_data'] = $product->get_item_variation_data( $item );
+			
+		}
+		
+		return $item_data;
+		
+	}
+	
 	/**
 	 * Order again composite product
 	 *
 	 * @param  int $order_id
 	 */
-	public function wc_cp_order_again( $order_id ) {
+	public function wc_cp_order_again( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
 		
-		$order = wc_get_order( $order_id );
-		
-		// Copy products from the order to the cart
-		foreach ( $order->get_items() as $item ) {
+		if( ! empty( $cart_item_data['wc_cp_order_again_data'] ) ) {
 			
-			// Load all product info including variation data
-			$product_id   = (int) apply_filters( 'woocommerce_add_to_cart_product_id', $item['product_id'] );
+			$variation = array_merge($variation, $cart_item_data['wc_cp_order_again_data']);
 			
-			$product = wc_get_product( $product_id );
-			
-			if( $product->is_type( 'composite' ) ) { 
-				
-				$product->order_again($item);
-				
-			}
+			wc()->cart->cart_contents[ $cart_item_key ]['variation'] = $variation;
 			
 		}
 		

@@ -88,7 +88,7 @@ class WC_CP_Display {
 			'base_weight'  => (float) $product->get_base_weight(),
       'weight_unit' => strtoupper( get_option('woocommerce_weight_unit') ),
 			'build_sku' => $product->get_build_sku(),
-			'components' => $product->get_composite_data(),
+			'components' => array_values($product->get_composite_data()),
 			'scenarios' => array_values( $product->get_composite_scenario_data() )
 		), $product );
 		

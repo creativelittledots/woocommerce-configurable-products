@@ -508,7 +508,7 @@ class WC_Product_Composite extends WC_Product {
 				
 			}
 			
-			$composite_data[] = apply_filters( 'woocommerce_composite_component_data', [
+			$composite_data[$component_id] = apply_filters( 'woocommerce_composite_component_data', [
 				'id' => $component_data['component_id'],
 				'style' => $component_data['option_style'] ? $component_data['option_style'] : $this->selections_style,
 				'title' => isset( $component_data['title'] ) ? $component_data['title'] : false,
@@ -533,7 +533,7 @@ class WC_Product_Composite extends WC_Product {
 			
 		}
 
-		return array_values($composite_data);
+		return $composite_data;
 	}
 	
 	/**
@@ -739,12 +739,10 @@ class WC_Product_Composite extends WC_Product {
 		
 	}
 	
-	public function order_again($item) {
+	public function get_item_variation_data($item) {
 		
-		$quantity     = (int) $item['qty'];
-		$variations   = array();
-		$cart_item_data = apply_filters( 'woocommerce_order_again_cart_item_data', array(), $item, $order );
-
+		$variations = array();
+		
 		foreach ( $item['item_meta'] as $meta_name => $meta_value ) {
 			
 			// Skip hidden core fields 
@@ -767,6 +765,16 @@ class WC_Product_Composite extends WC_Product {
 			$variations[ $meta_name ] = $meta_value[0];
 			
 		}
+		
+		return $variations;
+		
+	}
+	
+	public function order_again($item) {
+		
+		$quantity     = (int) $item['qty'];
+		$variations   = $this->get_item_variation_data($item);
+		$cart_item_data = apply_filters( 'woocommerce_order_again_cart_item_data', array(), $item, $order );
 		
 		if( $quantity ) {
 			            
