@@ -39,8 +39,9 @@
       list-style: none; }
     .component .component_inner li {
       margin-bottom: 0.5rem; }
+    .component .component_inner select, .component .component_inner ul {
+		margin-bottom: 1rem; }
     .component .component_inner label {
-	  display: block;
       font-size: 0.78rem; }
     .component .component_inner p {
       font-size: 0.78rem;

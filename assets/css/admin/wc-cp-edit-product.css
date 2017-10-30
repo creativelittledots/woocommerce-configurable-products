@@ -22,10 +22,6 @@
 	display: none;
 }
 
-.wc_cp_panel-inner {
-	margin-top: 10px;
-}
-
 .wc_cp_panel-tips {
 	font-size: 12px;
 	display: inline-block;
@@ -60,8 +56,20 @@
 
 .wc_cp_field {
 	margin: 9px 0;
-	padding: 5px 0 5px 200px !important;
+	padding: 5px 0 5px 195px !important;
 	clear: both;
+}
+
+.wc_cp_option {
+	padding: .75em .75em .75em 1em;
+}
+
+.wc_cp_field .mce-panel {
+	border: 1px solid #ddd;
+}
+
+.wc_cp_field .mce-toolbar-grp {
+	border: none;
 }
 
 .wc_cp_field:after {
@@ -72,11 +80,11 @@
 	height: 0;
 }
 
-.wc_cp_group_data {
+.wc_cp_component_data, .wc_cp_scenario_data {
 	padding: 0px 15px 15px;
 }
 
-.wc_cp_group_data label {
+.wc_cp_component_data label, .wc_cp_scenario_data label {
 	width: 185px;
 	margin: 0 0 0 -195px;
 }
@@ -109,11 +117,23 @@
 	border-bottom: none;
 }
 
+.wc-metaboxes {
+	position: relative;
+}
+
+.wc-metaboxes-wrapper .wc_cp_metabox.dragged {
+	background-color: #eee;
+    position: absolute;
+    top: 0;
+    z-index: 2000;
+    width: 100%;
+}
+
 .wc_cp_text_input {
 	width: 75%;
 }
 
-.wc_cp_group_id {
+.wc_cp_component_id {
 	font-size: 0.8em;
 	color: #999;
 	float: right;
@@ -128,6 +148,19 @@
 
 .wc_cp_right {
 	float:right;
+}
+
+.wc_cp_entity_id {
+	margin-top: 20px;
+	display: block;
+	font-size: 0.7rem;
+	color: #a5a5a5;
+    font-weight: 100;
+}
+
+.wc_cp_title {
+	margin: 0 0 1rem 0;
+	font-size: 0.825rem;
 }
 
 .wc_cp_panel-info {
@@ -145,4 +178,62 @@
 .wc_cp_panel input[type="text"],
 .wc_cp_panel input[type="number"] {
 	min-width: 0;
+}
+
+.select2-container {
+	min-width: 230px;
+}
+
+.flex {
+	display: flex;
+	flex-flow: row wrap;
+}
+
+.align-right {
+	justify-content: flex-end;
+}
+
+.mg-b-1 {
+	margin-bottom: 1rem;
+}
+
+.mg-b-2 {
+	margin-bottom: 2rem;
+}
+
+
+.bg-transparent.bg-transparent {
+	background-color: transparent;
+}
+
+.pd-1 {
+	padding: 1rem;
+}
+
+.pd-1p5 {
+	padding: 1.5rem;
+}
+
+.pd-2 {
+	padding: 2rem;
+}
+
+.b-1 {
+	border: 1px solid #eee;
+}
+
+.b-t-0 {
+	border-top: none;
+}
+
+.wc_cp_field .select2-container {
+	max-width: 350px;
+}
+
+.bg-white {
+	background-color: white !important;
+}
+
+.bg-grey {
+	background-color: #fafafa !important;
 }

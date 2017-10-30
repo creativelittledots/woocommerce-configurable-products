@@ -1,6 +1,6 @@
 <?php
 /**
- * Composite Products compatibility functions and conditional functions.
+ * Configurable Products compatibility functions and conditional functions.
  *
  * @version 3.0.0
  */
@@ -20,34 +20,70 @@ function wc_composite_get_product_terms( $product_id, $attribute_name, $args ) {
 
 }
 
-function is_composite_product() {
+function is_configurable_product() {
 
 	global $product;
 
-	return function_exists( 'is_product' ) && is_product() && ! empty( $product ) && $product->product_type === 'composite' ? true : false;
+	return function_exists( 'is_product' ) && is_product() && ! empty( $product ) && $product->get_type() === 'configurable' ? true : false;
 }
 
-/**
- * Get ther without khowing it's taxonomy. Not very nice, though.
- * 
- * @uses type $wpdb
- * @uses get_term()
- * @param int|object $term
- * @param string $output
- * @param string $filter
- */
-function get_term_by_id($term, $output = OBJECT, $filter = 'raw') {
-    global $wpdb;
-    $null = null;
+function wc_cp_get_component( $the_component, $associations = false ) {
+	
+	try {
+		
+		if ( is_numeric( $the_component ) || ( is_object( $the_component ) || is_array( $the_component ) ) ) {
+			
+			$component = new WC_CP_Component( $the_component, $associations );
+			
+			if( ! $component->id ) {
+				
+				throw new Exception( 'Component could not be found', 422 );
+				
+			}
+			
+		} else {
+			
+			throw new Exception( 'Invalid component data', 422 );
+			
+		}
 
-    if ( empty($term) ) {
-        $error = new WP_Error('invalid_term', __('Empty Term'));
-        return $error;
-    }
+		return $component;
 
-    $_tax = $wpdb->get_row( $wpdb->prepare( "SELECT t.* FROM $wpdb->term_taxonomy AS t WHERE t.term_id = %s LIMIT 1", $term) );
-    $taxonomy = $_tax->taxonomy;
-
-    return get_term($term, $taxonomy, $output, $filter);
-
+	} catch ( Exception $e ) {
+		
+		return false;
+		
+	}
+	
 }
+
+function wc_cp_get_scenario( $the_scenario = false, $associations = false ) {
+	
+	try {
+		
+		if ( is_numeric( $the_scenario ) || ( is_object( $the_scenario ) || is_array( $the_scenario ) ) ) {
+			
+			$scenario = new WC_CP_Scenario( $the_scenario, $associations );
+			
+			if( ! $scenario->id ) {
+				
+				throw new Exception( 'Scenario could not be found', 422 );
+				
+			}
+			
+		} else {
+			
+			throw new Exception( 'Invalid scenario data', 422 );
+			
+		}
+
+		return $scenario;
+
+	} catch ( Exception $e ) {
+		
+		return false;
+		
+	}
+	
+}
+
