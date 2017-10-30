@@ -133,6 +133,12 @@ class WC_Product_Configurable extends WC_Product {
 		
 	}
 	
+	public function get_cart_item_data() {
+		
+		return $this->cart_item_data;
+		
+	}
+	
 	public function get_cart_sku() {
 		
 		return isset( $this->cart_item_data['configurable']['sku'] ) ? $this->cart_item_data['configurable']['sku'] : null;

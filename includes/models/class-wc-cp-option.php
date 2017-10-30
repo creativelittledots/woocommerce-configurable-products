@@ -34,7 +34,7 @@ class WC_CP_Option {
 	
 	private $errors = array();
 	
-	private $fetch_scenarios = false;
+	private $fetched_scenarios = false;
 	
 	public function __construct( $option = null, $associations = false, $component = null ) {
 		
@@ -56,7 +56,7 @@ class WC_CP_Option {
 				
 				$this->load_options();
 				
-				//$this->load_scenarios();
+				$this->load_scenarios();
 				
 			}
 			
@@ -156,13 +156,15 @@ class WC_CP_Option {
 			
 			$scenarios = wp_list_pluck( $inside, 'scenario_id' );
 			
-			$outside = $this->get_component()->get_outsiders();
+			$component = $this->get_component();
+			
+			$outside = $component->get_outsiders();
 			
 			$excluded = [];
 
 			foreach($outside as $component) {
 				
-				$excluded[$component->scenario_id] = is_array($excluded[$component->scenario_id]) ? $excluded[$component->scenario_id] : [];
+				$excluded[$component->scenario_id] = ! empty($excluded[$component->scenario_id]) ? $excluded[$component->scenario_id] : [];
 				
 				$excluded[$component->scenario_id][] = $component->option_id;
 				

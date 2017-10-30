@@ -13,14 +13,15 @@ if ( ! defined( 'ABSPATH' ) )
 class WC_CP_Cart {
 
 	public function __construct() {
-
-		// Modify cart item data for configurable products
-		add_filter( 'woocommerce_add_cart_item', array( $this, 'wc_cp_add_cart_item_filter' ), 10, 2 );
+		
+		add_filter( 'woocommerce_add_cart_item', array($this, 'wc_cp_add_cart_item_filter'), 10, 2 );
 		
 		add_filter( 'woocommerce_add_cart_item_data', array($this, 'wc_cp_add_cart_item_data'), 10, 3 );
+		
+		add_filter( 'woocommerce_cart_id', array( $this, 'wc_cp_product_cart_id' ), 10, 5 );
 
 		// Preserve data in cart
-		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'wc_cp_get_cart_data_from_session' ), 10, 2 );
+		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'wc_cp_get_cart_data_from_session' ), 10, 3 );
 		
 		add_filter( 'woocommerce_get_item_data', array( $this, 'wc_cp_get_item_data' ), 10, 2 );
 			
@@ -39,8 +40,8 @@ class WC_CP_Cart {
 
 		if( $product->is_type('configurable') ) {
 			
-			$cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->get_id(), $request );
-			
+			$cart_item = $this->wc_cp_add_cart_item_data($cart_item, $product->get_id(), null, $request );
+				
 			$cart_item['data']->set_cart_item_data($cart_item);
 			
 		}		
@@ -49,7 +50,7 @@ class WC_CP_Cart {
 
 	}
 	
-	public function wc_cp_add_cart_item_data($cart_item, $product_id, $request = true) {
+	public function wc_cp_add_cart_item_data($cart_item, $product_id, $variation_id = null, $request = true) {
 		
 		$product = wc_get_product($product_id);
 		
@@ -57,14 +58,14 @@ class WC_CP_Cart {
 			
 			$cart_item['configurable'] = array_merge(array(
 				'product_id' => $product_id,
-				'quantity' => $cart_item['quantity'],
+				'quantity' => ! empty( $cart_item['quantity'] ) ? $cart_item['quantity'] : 1,
 				'price_incl_tax' => wc_get_price_including_tax( $product ),
 				'price_excl_tax' => wc_get_price_excluding_tax( $product ),
 				'product_sku' => $product->get_sku(),
 				'display_weight' => $product->get_weight() . strtoupper( get_option('woocommerce_weight_unit' ) ),
 				'weight' => $product->get_weight(),
 				'selections' => []
-			), ! empty( $cart_item['configurable'] ) ? $cart_item['configurable'] : [], $_REQUEST);
+			), ! empty( $cart_item['configurable'] ) ? $cart_item['configurable'] : [], $request ? $_REQUEST : []);
 			
 			$cart_item['variation'] = [];
 			
@@ -101,9 +102,9 @@ class WC_CP_Cart {
 	 * @param  array 	$item_session_values
 	 * @return array	$cart_item
 	 */
-	public function wc_cp_get_cart_data_from_session( $cart_item, $item_session_values ) {
+	public function wc_cp_get_cart_data_from_session( $cart_item, $item_session_values, $key ) {
 		
-		$cart_item = $this->wc_cp_add_cart_item_filter( $cart_item, null, false );
+		$cart_item = $this->wc_cp_add_cart_item_filter( $cart_item, $key, false );
 
 		return $cart_item;
 	}
@@ -148,6 +149,20 @@ class WC_CP_Cart {
 		}
 		
 		return $item_data;
+		
+	}
+	
+	public function wc_cp_product_cart_id( $key, $product_id, $variation_id, $variation, $cart_item_data ) {
+		
+		$product = wc_get_product($product_id);
+		
+		if( $product->is_type('configurable') ) {
+			
+			$key .= md5( http_build_query( $cart_item_data['configurable']['selections'] ) );
+			
+		}
+		
+		return $key;
 		
 	}
 
