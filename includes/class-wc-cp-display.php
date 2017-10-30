@@ -1,6 +1,6 @@
 <?php
 /**
- * Composite front-end filters and functions.
+ * Configurable front-end filters and functions.
  *
  * @class 	WC_CP_Display
  * @version 3.1.0
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 class WC_CP_Display {
 
-	private $enqueued_composited_table_item_js = false;
+	private $enqueued_configurabled_table_item_js = false;
 
 	public function __construct() {
 
@@ -24,15 +24,15 @@ class WC_CP_Display {
 		// Single product template
 		add_action( 'woocommerce_single_product_summary', array( $this, 'wc_cp_form' ), 30 );
 
-		// Single product add-to-cart button template for composite products
-		add_action( 'woocommerce_composite_add_to_cart', array( $this, 'wc_cp_add_to_cart' ) );
+		// Single product add-to-cart button template for configurable products
+		add_action( 'woocommerce_configurable_add_to_cart', array( $this, 'wc_cp_add_to_cart' ) );
 
 
 		/* ------------------------------- */
 		/* Other display-related hooks
 		/* ------------------------------- */
 
-		// Filter add_to_cart_url and add_to_cart_text when product type is 'composite'
+		// Filter add_to_cart_url and add_to_cart_text when product type is 'configurable'
 		add_filter( 'woocommerce_loop_add_to_cart_link', array( $this, 'wc_cp_loop_add_to_cart_link' ), 10, 2 );
 
 		// Front end scripts
@@ -49,26 +49,26 @@ class WC_CP_Display {
 	/* ------------------------------------------------------------------------------- */
 
 	/**
-	 * Add-to-cart button and quantity template for composite products.
+	 * Add-to-cart button and quantity template for configurable products.
 	 * @return void
 	 */
 	public function wc_cp_add_to_cart() {
 
-		global $woocommerce_composite_products;
+		global $wc_configurable_products;
 
-		wc_get_template( 'single-product/add-to-cart/composite.php', array(), false, $woocommerce_composite_products->plugin_path() . '/templates/' );
+		wc_get_template( 'single-product/add-to-cart/configurable.php', array(), false, $wc_configurable_products->plugin_path() . '/templates/' );
 		
 	}
 
 	/**
-	 * Add-to-cart template for composite products.
+	 * Add-to-cart template for configurable products.
 	 * @return void
 	 */
 	public function wc_cp_form() {
 
-		global $product, $woocommerce_composite_products;
+		global $product, $wc_configurable_products;
 		
-		if( ! $product->is_type( 'composite' ) || ! $product->get_composite_data() ) {
+		if( ! $product->is_type( 'configurable' ) || ! $product->get_configuration() ) {
 			return;
 		}
 
@@ -77,30 +77,16 @@ class WC_CP_Display {
 		wp_enqueue_script( 'rivets' );
 		wp_enqueue_script( 'rivets-formatters' );
 		wp_enqueue_script( 'rivets-backbone' );
-		
-		$product_data = apply_filters( 'wc_cp_product_data', array(
-    		'id' => $product->id,
-    		'min_price' => (float) $product->get_min_price(),
-    		'min_price_incl_tax' => (float) $product->get_min_price_including_tax(),
-			'base_price' => (float) $product->get_base_price(),
-			'base_price_incl_tax' => (float) $product->get_base_price_including_tax(),
-			'base_sku'  => $product->get_build_sku() ? $product->get_base_sku() : $product->get_sku(),
-			'base_weight'  => (float) $product->get_base_weight(),
-      'weight_unit' => strtoupper( get_option('woocommerce_weight_unit') ),
-			'build_sku' => $product->get_build_sku(),
-			'components' => array_values($product->get_composite_data()),
-			'scenarios' => array_values( $product->get_composite_scenario_data() )
-		), $product );
-		
-		wp_localize_script( 'wc-add-to-cart-composite', 'wc_cp_product_data', $product_data );
-		
-		wp_enqueue_script( 'wc-add-to-cart-composite' );
 
-		wp_enqueue_style( 'wc-composite-single-css' );
+		wp_localize_script( 'wc-add-to-cart-configurable', 'wc_cp_product_data', (array) $product->get_configuration() );
+		
+		wp_enqueue_script( 'wc-add-to-cart-configurable' );
+		
+		wp_enqueue_style( 'wc-configurable-single-css' );
 
-		wc_get_template( 'single-product/composite.php', array(
+		wc_get_template( 'single-product/configurable.php', array(
 			'product'          => $product
-		), '', $woocommerce_composite_products->plugin_path() . '/templates/' );
+		), '', $wc_configurable_products->plugin_path() . '/templates/' );
 
 	}
 
@@ -113,7 +99,7 @@ class WC_CP_Display {
 	 */
 	public function wc_cp_loop_add_to_cart_link( $link, $product ) {
 
-		if ( $product->is_type( 'composite' ) ) {
+		if ( $product->is_type( 'configurable' ) ) {
 			
 			return str_replace( 'add_to_cart_button', '', $link );
 			
@@ -129,7 +115,7 @@ class WC_CP_Display {
 	 */
 	public function wc_cp_frontend_scripts() {
 
-		global $woocommerce_composite_products;
+		global $wc_configurable_products;
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
@@ -137,30 +123,30 @@ class WC_CP_Display {
 
 		// Add any custom script dependencies here
 		// Examples: custom product type scripts and component layered filter scripts
-		$dependencies = apply_filters( 'woocommerce_composite_script_dependencies', $dependencies );
+		$dependencies = apply_filters( 'woocommerce_configurable_script_dependencies', $dependencies );
 		
-		wp_register_script( 'backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/backbone.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'backbone', $wc_configurable_products->plugin_url() . '/assets/js/vendor/backbone.min.js', array(), $wc_configurable_products->version );
 		
-		wp_register_script( 'rivets', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.bundled.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets', $wc_configurable_products->plugin_url() . '/assets/js/vendor/rivets.bundled.min.js', array(), $wc_configurable_products->version );
 		
-		wp_register_script( 'rivets-formatters', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.formatters.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets-formatters', $wc_configurable_products->plugin_url() . '/assets/js/vendor/rivets.formatters.min.js', array(), $wc_configurable_products->version );
 		
-		wp_register_script( 'rivets-backbone', $woocommerce_composite_products->plugin_url() . '/assets/js/vendor/rivets.backbone.min.js', array(), $woocommerce_composite_products->version );
+		wp_register_script( 'rivets-backbone', $wc_configurable_products->plugin_url() . '/assets/js/vendor/rivets.backbone.min.js', array(), $wc_configurable_products->version );
 
-		wp_register_script( 'wc-add-to-cart-composite', $woocommerce_composite_products->plugin_url() . '/assets/js/frontend/add-to-cart-composite' . $suffix . '.js', $dependencies, $woocommerce_composite_products->version );
+		wp_register_script( 'wc-add-to-cart-configurable', $wc_configurable_products->plugin_url() . '/assets/js/frontend/add-to-cart-configurable' . $suffix . '.js', $dependencies, $wc_configurable_products->version );
 
-		wp_register_style( 'wc-composite-single-css', $woocommerce_composite_products->plugin_url() . '/assets/css/frontend/wc-composite-single.css', false, $woocommerce_composite_products->version, 'all' );
+		wp_register_style( 'wc-configurable-single-css', $wc_configurable_products->plugin_url() . '/assets/css/frontend/wc-configurable-single.css', false, $wc_configurable_products->version, 'all' );
 
 		$params = apply_filters( 'wc_cp_params', array(
-			'currency'                        		 => get_woocommerce_currency_symbol(),
-			'script_debug'                           => defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? 'yes' : 'no'
+			'currency'	=> get_woocommerce_currency_symbol(),
+			'script_debug'	=> defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? 'yes' : 'no'
 		) );
 		
 		global $post;
 			
-		if( $post instanceOf WP_Post ) {
+		if( $post instanceOf WP_Post && $post->post_type == 'product' ) {
 			
-			$product = new WC_Product($post);
+			$product = new WC_Product( $post );
 			
 			$params = array_merge($params, array(
 				'sku' => $product->get_sku(),
@@ -169,7 +155,7 @@ class WC_CP_Display {
 		
 		}
 		
-		wp_localize_script( 'wc-add-to-cart-composite', 'wc_cp_params', $params );
+		wp_localize_script( 'wc-add-to-cart-configurable', 'wc_cp_params', $params );
 		
 	}
 
@@ -185,10 +171,10 @@ class WC_CP_Display {
 			$this->wc_cp_frontend_scripts();
 
 			// Enqueue script
-			wp_enqueue_script( 'wc-add-to-cart-composite' );
+			wp_enqueue_script( 'wc-add-to-cart-configurable' );
 
 			// Enqueue styles
-			wp_enqueue_style( 'wc-composite-single-css' );
+			wp_enqueue_style( 'wc-configurable-single-css' );
 		}
 	}
 	

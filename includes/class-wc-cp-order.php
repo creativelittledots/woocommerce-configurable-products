@@ -16,7 +16,7 @@ class WC_CP_Order {
 
 	public function __construct() {
 
-		// Hide composite configuration metadata in order line items
+		// Hide configurable configuration metadata in order line items
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'wc_cp_hide_order_item_meta' ) );
 		
 		add_action( 'woocommerce_order_again_cart_item_data', array($this, 'wc_cp_order_again_cart_item_data'), 10, 3 );
@@ -26,7 +26,7 @@ class WC_CP_Order {
 	}
 
 	/**
-	 * Hides composite metadata.
+	 * Hides configurable metadata.
 	 *
 	 * @param  array $hidden
 	 * @return array
@@ -52,7 +52,7 @@ class WC_CP_Order {
 	}
 	
 	/**
-	 * Order again composite product
+	 * Order again configurable product
 	 *
 	 * @param  int $order_id
 	 */

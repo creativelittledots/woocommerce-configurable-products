@@ -1,6 +1,6 @@
 <?php
 /**
- * Composite quantity input template.
+ * Configurable quantity input template.
  *
  * @version 2.5.2
  */
@@ -20,7 +20,7 @@ if ( ! $product->is_purchasable() ) {
 
 <div class="row">
 
-	<div class="small-4 columns">
+	<div class="medium-4 columns">
 			
 		<?php if ( ! $product->is_sold_individually() ) : ?>
 		
@@ -38,9 +38,9 @@ if ( ! $product->is_purchasable() ) {
 		
 	</div>
 	
-	<div class="small-8 columns">
+	<div class="medium-8 columns">
 		
-		<button type="submit" class="button buy radius small-12 disabled composite_add_to_cart_button" rv-disabled="product:errors" rv-class-disabled="product:errors" rv-on-click="product.add_to_cart_click"><?php echo $product->single_add_to_cart_text(); ?></button>
+		<button type="submit" class="button buy radius small-12 disabled configurable_add_to_cart_button" rv-disabled="product:no_of_errors | > 0" rv-class-disabled="product:no_of_errors | > 0" rv-on-click="product.add_to_cart_click"><?php echo $product->single_add_to_cart_text(); ?></button>
 		
 	</div>
 	

@@ -17,17 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Required functions
-if ( ! function_exists( 'woothemes_queue_update' ) ) {
-	require_once( 'woo-includes/woo-functions.php' );
-}
-
-// Check if WooCommerce is active
-if ( ! is_woocommerce_active() ) {
-	return;
-}
-
-class WC_Composite_Products {
+class WC_Configurable_Products {
 
 	public $version 	= '3.1.0';
 	public $required 	= '2.1.0';
@@ -64,24 +54,29 @@ class WC_Composite_Products {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 			return false;
 		}
+		
+		include_once( 'includes/class-wc-cp-install.php' );
 
 		// Functions for 2.X back-compat
 		include_once( 'includes/wc-cp-functions.php' );
 		
-		// WP_Query wrapper for component option queries
-		require_once( 'includes/class-wc-cp-query.php' );
-
-		// Composite product API
-		require_once( 'includes/class-wc-cp-api.php' );
-		$this->api = new WC_CP_API();
+		// Composite abstract classes
+		require_once( 'includes/models/class-wc-cp-component.php' );
+		require_once( 'includes/models/class-wc-cp-component-field.php' );
+		require_once( 'includes/models/class-wc-cp-option.php' );
+		require_once( 'includes/models/class-wc-cp-scenario.php' );
+		require_once( 'includes/models/class-wc-cp-scenario-component.php' );
+		require_once( 'includes/models/class-wc-cp-scenario-component-option.php' );
 
 		// Composite product class
-		require_once( 'includes/class-wc-product-composite.php' );
+		require_once( 'includes/models/class-wc-product-configurable.php' );
 
 
 		// Admin functions and meta-boxes
 		if ( is_admin() ) {
+			
 			$this->admin_includes();
+			
 		}
 
 		// Cart-related functions and filters
@@ -108,7 +103,7 @@ class WC_Composite_Products {
 		require_once( 'includes/admin/class-wc-cp-admin.php' );
 		$this->admin = new WC_CP_Admin();
 	}
-
+	
 	/**
 	 * Load textdomain.
 	 *
@@ -117,6 +112,7 @@ class WC_Composite_Products {
 	public function init() {
 
 		load_plugin_textdomain( 'woocommerce-composite-products', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+		
 	}
 
 	/**
@@ -138,47 +134,11 @@ class WC_Composite_Products {
 
 		global $wpdb;
 
-		$version = get_option( 'woocommerce_composite_products_version', false );
+		$version = get_option( 'wc_cp_products_version', false );
 
 		if ( $version == false ) {
 
-			$composite_type_exists = false;
-
-			$product_type_terms = get_terms( 'product_type', array( 'hide_empty' => false ) );
-
-			foreach ( $product_type_terms as $product_type_term ) {
-
-				if ( $product_type_term->name === 'bto' ) {
-
-					$composite_type_exists = true;
-
-					// Check for existing 'composite' slug and if it exists, modify it
-					if ( $existing_term_id = term_exists( 'composite' ) )
-						$wpdb->update( $wpdb->terms, array( 'slug' => 'composite-b' ), array( 'term_id' => $existing_term_id ) );
-
-					// Update composite type term
-					wp_update_term( $product_type_term->term_id, 'product_type', array( 'slug' => 'composite', 'name' => 'composite' ) );
-
-					break;
-
-				} elseif ( $product_type_term->name === 'composite' ) {
-
-					$composite_type_exists = true;
-					break;
-				}
-
-			}
-
-			if ( ! $composite_type_exists ) {
-
-				// Check for existing 'composite' slug and if it exists, modify it
-				if ( $existing_term_id = term_exists( 'composite' ) )
-					$wpdb->update( $wpdb->terms, array( 'slug' => 'composite-b' ), array( 'term_id' => $existing_term_id ) );
-
-				wp_insert_term( 'composite', 'product_type' );
-			}
-
-			add_option( 'woocommerce_composite_products_version', $this->version );
+			add_option( 'wc_cp_products_version', $this->version );
 
 			// Update from previous versions
 
@@ -187,7 +147,7 @@ class WC_Composite_Products {
 
 		} elseif ( version_compare( $version, $this->version, '<' ) ) {
 
-			update_option( 'woocommerce_composite_products_version', $this->version );
+			update_option( 'wc_cp_products_version', $this->version );
 		}
 
 	}
@@ -199,9 +159,9 @@ class WC_Composite_Products {
 	 */
 	public function deactivate() {
 
-		delete_option( 'woocommerce_composite_products_version' );
+		delete_option( 'wc_cp_products_version' );
 	}
 	
 }
 
-$GLOBALS[ 'woocommerce_composite_products' ] = new WC_Composite_Products();
+$GLOBALS[ 'wc_configurable_products' ] = new WC_Configurable_Products();
