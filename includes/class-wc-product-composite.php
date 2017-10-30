@@ -816,6 +816,18 @@ class WC_Product_Composite extends WC_Product {
 		return false;
 		
 	}
+	
+	public function get_composite_price_excluding_tax() {
+		
+		return $this->get_min_price();
+		
+	}
+	
+	public function get_composite_price_including_tax() {
+		
+		return $this->get_min_price_including_tax();
+		
+	}
 
 }
 
