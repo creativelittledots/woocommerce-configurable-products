@@ -69,11 +69,11 @@ class WC_Product_Configurable extends WC_Product {
 		
 		if( $price = $this->get_cart_price() ) {
 			
-			return (float) $price;
+			return $price;
 			
 		}
 		
-		return (float) apply_filters( 'woocommerce_configurable_get_price', $this->get_raw_price(), $this );
+		return apply_filters( 'woocommerce_configurable_get_price', $this->get_raw_price(), $this );
 		
 	}
 	
@@ -1001,6 +1001,37 @@ class WC_Product_Configurable extends WC_Product {
 		return apply_filters( 'woocommerce_configurable_add_to_cart_text', $text, $this );
 		
 	}	
+	
+	public function get_item_variation_data($item) {
+		
+		$variations = array();
+		
+		foreach ( $item['item_meta'] as $meta_name => $meta_value ) {
+			
+			// Skip hidden core fields 
+            if ( in_array( $meta_name, apply_filters( 'woocommerce_hidden_order_itemmeta', array( 
+				'_qty',  
+				'_tax_class',  
+				'_product_id',  
+				'_variation_id',  
+				'_line_subtotal',  
+				'_line_subtotal_tax',  
+				'_line_total',  
+				'_line_tax',  
+				'_line_tax_data'
+			) ) ) ) { 
+				
+                continue; 
+                
+        	} 
+			
+			$variations[ $meta_name ] = $meta_value[0];
+			
+		}
+		
+		return $variations;
+		
+	}
 	
 	public function order_again($item) {
 		

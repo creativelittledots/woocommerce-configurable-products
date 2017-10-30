@@ -25,7 +25,7 @@ class WC_CP_Cart {
 		add_filter( 'woocommerce_get_item_data', array( $this, 'wc_cp_get_item_data' ), 10, 2 );
 			
 	}
-
+	
 	/**
 	 * Modifies cart item data - important for the first calculation of totals only.
 	 *

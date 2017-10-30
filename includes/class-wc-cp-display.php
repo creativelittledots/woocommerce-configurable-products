@@ -81,7 +81,7 @@ class WC_CP_Display {
 		wp_localize_script( 'wc-add-to-cart-configurable', 'wc_cp_product_data', (array) $product->get_configuration() );
 		
 		wp_enqueue_script( 'wc-add-to-cart-configurable' );
-
+		
 		wp_enqueue_style( 'wc-configurable-single-css' );
 
 		wc_get_template( 'single-product/configurable.php', array(
