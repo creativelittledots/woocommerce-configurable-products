@@ -208,7 +208,7 @@ class WC_Product_Configurable extends WC_Product {
 
 		if ( $this->is_priced_per_product() ) {
 			
-			return (float) apply_filters( 'woocommerce_configurable_get_base_price', get_query_var( 'wc_query' ) == 'product_query' ? max( $this->min_price, $this->base_price ) : $this->base_price, $this );
+			return (float) apply_filters( 'woocommerce_configurable_get_base_price', apply_filters( 'woocommerce_get_price', get_query_var( 'wc_query' ) == 'product_query' ? max( $this->min_price, $this->base_price ) : $this->base_price, $this ), $this );
 			
 		} else {
 			
@@ -370,7 +370,7 @@ class WC_Product_Configurable extends WC_Product {
     	if ( ! $this->is_synced() )
 			$this->sync_configurable();
     	
-    	return $this->min_price;
+    	return apply_filters( 'woocommerce_get_price', $this->min_price, $this );
     	
 	}
 	

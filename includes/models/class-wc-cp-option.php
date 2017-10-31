@@ -31,6 +31,7 @@ class WC_CP_Option {
 	var $options = array();
 	var $scenarios = array();
 	var $product = null;
+	var $component = null;
 	
 	private $errors = array();
 	
@@ -144,6 +145,18 @@ class WC_CP_Option {
 		
 	}
 	
+	public function get_product( $load = true ) {
+		
+		if( $load ) {
+		
+			$this->load_product();
+			
+		}
+		
+		return $this->product;
+		
+	}
+	
 	// Load Associations
 	
 	public function load_scenarios() {
@@ -210,6 +223,16 @@ class WC_CP_Option {
 		if( $this->get_component_id() && ! $this->get_component( false ) ) {
 			
 			$this->component = wc_cp_get_component( $this->get_component_id() );
+			
+		}
+		
+	}
+	
+	public function load_product() {
+		
+		if( $this->get_product_id() && ! $this->get_product( false ) ) {
+			
+			$this->product = wc_get_product( $this->get_product_id() );
 			
 		}
 		
@@ -462,19 +485,21 @@ class WC_CP_Option {
 	
 	public function get_price() {
 		
+		$price = false;
+		
 		if( is_numeric( $this->get_raw_price() ) ) {
 			
-			return $this->get_raw_price();
+			$price = $this->get_raw_price();
 			
 		}
 		
 		if( $product_id = $this->get_product_id() ) {
 			
-			return get_post_meta( $product_id, '_price', true );
+			$price = get_post_meta( $product_id, '_price', true );
 			
 		}
 		
-		return false;
+		return $this->finalise_price($price);
 		
 	}
 	
@@ -482,11 +507,27 @@ class WC_CP_Option {
 		
 		if( $product_id = $this->get_product_id() ) {
 			
-			return get_post_meta( $product_id, '_regular_price', true );
+			$price = get_post_meta( $product_id, '_regular_price', true );
+			
+		} else {
+			
+			$price = $this->get_price();
 			
 		}
 		
-		return $this->get_price();
+		return $this->finalise_price($price);
+		
+	}
+	
+	protected function finalise_price($price) {
+		
+		if( $price ) {
+			
+			$price = apply_filters( 'woocommerce_get_price', $price, $this->get_product() );
+			
+		}
+		
+		return $price;
 		
 	}
 	
