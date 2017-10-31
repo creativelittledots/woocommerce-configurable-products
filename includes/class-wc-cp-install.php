@@ -44,19 +44,19 @@ class WC_CP_Install {
 		// make child products not visible
             
         $args = array(
-            'post_type' => 'product',
+            'type' => 'grouped',
             'showposts' => -1 
         );
         
-        foreach(get_posts($args) as $post) {
+        foreach(wc_get_products($args) as $product) {
             
-            if( $post->post_parent > 0 ) {
+            foreach($product->get_children() as $child_id) {
 	            
-	            $product = wc_get_product( $post );
+	            $child = wc_get_product( $child_id );
+	                      
+	            $child->set_catalog_visibility( 'search' );
 	            
-	            $product->set_catalog_visibility( 'search' );
-	            
-	            $product->save();
+	            $child->save();
 	            
             }
             
