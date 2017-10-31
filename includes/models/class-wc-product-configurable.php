@@ -425,7 +425,7 @@ class WC_Product_Configurable extends WC_Product {
 
 			}
 
-			return apply_filters( 'woocommerce_product_get_price_html', $price, $this );
+			return apply_filters( 'woocommerce_get_price_html', $price, $this );
 
 		} else {
 

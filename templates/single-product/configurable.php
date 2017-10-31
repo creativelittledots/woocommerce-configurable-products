@@ -49,7 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	
 	<div rv-if="component:source | = 'default'">
 		
-		<p class="component_description" rv-if="component:description" rv-text="component:description"></p>
+		<p class="component_description" rv-if="component:description" rv-html="component:description"></p>
 		
 		<select rv-if="component:style | = 'dropdown'" rv-name="component:id" rv-sku-order="component:sku_order" rv-required="component:optional | !" rv-value="component:subselected">
 									
