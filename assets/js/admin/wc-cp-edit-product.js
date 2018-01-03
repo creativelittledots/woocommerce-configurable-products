@@ -84,7 +84,7 @@ jQuery( function($) {
 			            return {
 							term:     params.term,
 							action:   $( this ).data( 'action' ) || 'woocommerce_cp_json_search_products',
-							product_type: $( this ).attr( 'product_type' ).replace( '-product', '' ) || 'simple',
+							product_type: $( this ).attr( 'product_type' ) ? $( this ).attr( 'product_type' ).replace( '-product', '' ) : 'simple',
 							security: wc_enhanced_select_params.search_products_nonce
 			            };
 			        },
@@ -579,7 +579,7 @@ jQuery( function($) {
 	
 	$('#publish').click(function(e) {
 		
-		if( ! product.promise ) {
+		if( ! product.promise && $('#product-type').val() == 'configurable' ) {
 		
 			e.preventDefault();
 			

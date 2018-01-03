@@ -324,10 +324,6 @@ jQuery(document).ready(function($) {
                             this.attributes.active_scenarios.splice(i, 1);
                             i--;
                         }
-					    if( 0 > $.inArray( active_scenarios[i], selection.get('scenarios') ) ) {
-					        active_scenarios.splice(i, 1);
-					        i--;
-					    }
 					};
 					
 				} else {
@@ -473,7 +469,7 @@ jQuery(document).ready(function($) {
 			this.attributes.price_incl_tax = parseFloat(product.get('base_price_incl_tax'));
 			this.attributes.price_excl_tax = parseFloat(product.get('base_price_excl_tax'));
 			this.attributes.weight = parseFloat(product.get('base_weight'));
-			this.attributes.sku = [product.get('base_sku')];
+			this.attributes.sku = product.get('build_sku') ? [product.get('base_sku')] : [product.get('sku')];
 			this.attributes.no_of_errors = 0;
 			this.attributes.no_of_selections = 0;
 			this.attributes.active_scenarios = [];

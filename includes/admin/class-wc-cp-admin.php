@@ -264,8 +264,7 @@ class WC_CP_Admin {
 		if ( is_numeric( $term ) ) {
 			$query = $wpdb->prepare( "
 				SELECT ID FROM {$wpdb->posts} posts LEFT JOIN {$wpdb->postmeta} postmeta ON posts.ID = postmeta.post_id
-				WHERE posts.post_status IN ['private', 'publish']
-				AND (
+				WHERE (
 					posts.post_parent = %s
 					OR posts.ID = %s
 					OR posts.post_title LIKE %s
@@ -277,8 +276,7 @@ class WC_CP_Admin {
 		} else {
 			$query = $wpdb->prepare( "
 				SELECT ID FROM {$wpdb->posts} posts LEFT JOIN {$wpdb->postmeta} postmeta ON posts.ID = postmeta.post_id
-				WHERE posts.post_status IN ['private', 'publish']
-				AND (
+				WHERE (
 					posts.post_title LIKE %s
 					or posts.post_content LIKE %s
 					OR (

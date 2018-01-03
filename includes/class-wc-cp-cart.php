@@ -67,25 +67,38 @@ class WC_CP_Cart {
 				'selections' => []
 			), ! empty( $cart_item['configurable'] ) ? $cart_item['configurable'] : [], $request ? $_REQUEST : []);
 			
-			$cart_item['variation'] = [];
+			if( ! empty( $cart_item['configurable']['selections'] ) ) {
 			
-			$cart_item['variation']['Weight'] = $cart_item['configurable']['display_weight'];
-			$cart_item['variation']['SKU'] = $cart_item['configurable']['product_sku'];
-				
-			foreach($cart_item['configurable']['selections'] as $selection) {
-				
-				$key = $selection['title'];
-				$i = 1;
-				
-				while( array_key_exists( $key, $cart_item['variation'] ) ) {
+				$cart_item['variation'] = [];
 					
-					$i++;
+				foreach($cart_item['configurable']['selections'] as $selection) {
 					
-					$key = $selection['title'] . ( $i ? ' ' . $i : '' );
+					$key = $selection['title'];
+					$i = 1;
+					
+					while( array_key_exists( $key, $cart_item['variation'] ) ) {
+						
+						$i++;
+						
+						$key = $selection['title'] . ( $i ? ' ' . $i : '' );
+						
+					}
+					
+					$cart_item['variation'][ $key ] = $selection['selected'];
 					
 				}
 				
-				$cart_item['variation'][ $key ] = $selection['selected'];
+			}
+			
+			if( ! empty( $cart_item['configurable']['display_weight'] ) && empty( $cart_item['variation']['Weight'] ) ) {
+
+				$cart_item['variation']['Weight'] = $cart_item['configurable']['display_weight'];
+				
+			}
+			
+			if( ! empty( $cart_item['configurable']['product_sku'] ) && empty( $cart_item['variation']['SKU'] ) ) {
+
+				$cart_item['variation']['SKU'] = $cart_item['configurable']['product_sku'];
 				
 			}
 			

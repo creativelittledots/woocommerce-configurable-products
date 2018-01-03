@@ -19,7 +19,7 @@ class WC_CP_Order {
 		// Hide configurable configuration metadata in order line items
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'wc_cp_hide_order_item_meta' ) );
 		
-		add_action( 'woocommerce_order_again_cart_item_data', array($this, 'wc_cp_order_again_cart_item_data'), 10, 3 );
+		add_filter( 'woocommerce_order_again_cart_item_data', array($this, 'wc_cp_order_again_cart_item_data'), 10, 3 );
 		
 		add_action( 'woocommerce_add_to_cart', array($this, 'wc_cp_order_again' ), 10, 6 );
 
@@ -41,7 +41,7 @@ class WC_CP_Order {
 		
 		$product = $order->get_product_from_item( $item );
 		
-		if( $product->is_type('composite') ) {
+		if( $product->is_type('configurable') ) {
 			
 			$item_data['wc_cp_order_again_data'] = $product->get_item_variation_data( $item );
 			

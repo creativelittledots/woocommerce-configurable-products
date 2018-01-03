@@ -14,6 +14,7 @@ class WC_Product_Configurable extends WC_Product {
 
 	private $configuration = null;
 	private $cart_item_data = array();
+	private $explicit_price = null;
 	
 	public $per_product_pricing;
 	
@@ -58,6 +59,24 @@ class WC_Product_Configurable extends WC_Product {
 		return 'configurable';
 		
 	}
+	
+	public function set_price($price) {
+		
+		if( apply_filters('wc_cp_set_explicit_price', false, $this) ) {
+		
+			$this->explicit_price = $price;
+			
+		}
+		
+		return parent::set_price($price);
+		
+	}
+	
+	public function get_explicit_price() {
+		
+		return $this->explicit_price;
+		
+	}
 
 	/**
 	 * Overrides get_price to return base price in static price mode.
@@ -67,13 +86,13 @@ class WC_Product_Configurable extends WC_Product {
 	 */
 	public function get_price( $context = 'view' ) {
 		
-		if( $price = $this->get_cart_price() ) {
+		if( ! ( $price = $this->get_explicit_price() ) && ! ( $price = $this->get_cart_price() ) ) {
 			
-			return $price;
+			$price = $this->get_raw_price();
 			
 		}
 		
-		return apply_filters( 'woocommerce_configurable_get_price', $this->get_raw_price(), $this );
+		return apply_filters( 'woocommerce_configurable_get_price', apply_filters( 'woocommerce_get_price', $price, $this ), $this );
 		
 	}
 	
@@ -467,6 +486,7 @@ class WC_Product_Configurable extends WC_Product {
 			$configuration->weight_unit = strtoupper( get_option('woocommerce_weight_unit') );
 			$configuration->base_weight = $this->get_base_weight();
 			$configuration->build_sku = $this->get_build_sku();
+			$configuration->sku = $this->get_sku();
 			$configuration->components = $this->get_components();
 			$configuration->scenarios = $this->get_scenarios();
 			$configuration->priced_per_product = $this->is_priced_per_product();
@@ -1031,7 +1051,7 @@ class WC_Product_Configurable extends WC_Product {
                 
         	} 
 			
-			$variations[ $meta_name ] = $meta_value[0];
+			$variations[ $meta_name ] = $meta_value;
 			
 		}
 		

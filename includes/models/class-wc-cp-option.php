@@ -493,7 +493,7 @@ class WC_CP_Option {
 			
 		}
 		
-		if( $product_id = $this->get_product_id() ) {
+		elseif( $product_id = $this->get_product_id() ) {
 			
 			$price = get_post_meta( $product_id, '_price', true );
 			
