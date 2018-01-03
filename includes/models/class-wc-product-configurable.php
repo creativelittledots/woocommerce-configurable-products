@@ -1105,7 +1105,7 @@ class WC_Product_Configurable extends WC_Product {
 		// Add to cart validation
 		if ( ! apply_filters( 'woocommerce_add_to_cart_validation', true, $this->get_id(), $quantity, $variation_id, $variations, $cart_item_data ) ) {
 			
-			continue;
+			return;
 			
 		}
 
