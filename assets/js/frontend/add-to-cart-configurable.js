@@ -203,7 +203,7 @@ jQuery(document).ready(function($) {
 				case 'text':
 					this.get('field').on('change:value', function(field) {
 						
-						var Collection = field.get('type') == 'number' ? PriceFormulas : Backbone.Collection;
+						var Collection = this.get('style') == 'number' ? PriceFormulas : Backbone.Collection;
 					
 						this.set('selections', new Collection( field.get('value') ? [ field.to_selection() ] : [] ) );
 						this.set('no_of_selections', field.get('value') ? 1 : 0);
