@@ -389,8 +389,8 @@ jQuery( function($) {
 			title: '',
 			source: 'default',
 			style: 'dropdown',
-			options: new Options(),
-			field: new Field(),
+			options: [],
+			field: {},
 			components: []
 		}),
 		

@@ -79,8 +79,8 @@ class WC_CP_Option {
 		$this->recommended = ! empty( $option['recommended'] ) ? ( $option['recommended'] ? true : false ) : $this->is_recommended();
 		$this->sku = ! empty( $option['sku'] ) ? $option['sku'] : $this->get_raw_sku();
 		$this->price = isset( $option['price'] ) ? $option['price'] : $this->get_raw_price();
-		$this->display_price_incl_tax = wc_get_price_including_tax( $this->get_product(), [ 'price' => $this->get_price() ] );
-		$this->display_price_excl_tax = wc_get_price_excluding_tax( $this->get_product(), [ 'price' => $this->get_price() ] );
+		$this->display_price_incl_tax = $this->get_product() ? wc_get_price_including_tax( $this->get_product(), [ 'price' => $this->get_price() ] ) : 0;
+		$this->display_price_excl_tax = $this->get_product() ? wc_get_price_excluding_tax( $this->get_product(), [ 'price' => $this->get_price() ] ) : 0;
 		$this->formula = ! empty( $option['formula'] ) ? $option['formula'] : $this->get_raw_formula();
 		$this->display_formula = $this->get_formula();
 		$this->nested_options = ! empty( $option['nested_options'] ) ? $option['nested_options'] : $this->has_nested_options();
