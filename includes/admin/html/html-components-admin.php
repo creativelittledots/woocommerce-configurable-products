@@ -79,7 +79,7 @@
 				
 				<li class="wc_cp_metabox wc-metabox" rv-each-component="product.attributes.components.models" rv-data-position="component.attributes.position">
 					
-					<component component="component" product="product" class="wc-metabox"></component>
+					<component component="component" product="product" class="wc-metabox js-metabox"></component>
 					
 				</li>
 
@@ -108,6 +108,8 @@
 </div>
 
 <script type="text/html" id="component">
+	
+	<input type="hidden" class="js-item-position" rv-input-match="component.attributes.position" />
 					
 	<h3 rv-on-click="component.open">
 		
@@ -154,8 +156,6 @@
 					</label>
 					
 					<input type="text" class="component_title component_text_input" rv-value="component.attributes.title"/>
-					
-					<input type="hidden" class="js-item-position" rv-input-match="component.attributes.position" />
 					
 				</div>
 				
@@ -355,7 +355,7 @@
 
 						<li class="wc_cp_metabox wc-metabox" rv-each-child="component.attributes.components.models" rv-data-position="child.attributes.position">
 							
-							<component parent="component" component="child" product="product"></component>
+							<component parent="component" component="child" product="product" class="js-metabox"></component>
 							
 						</li>
 						
@@ -551,7 +551,7 @@
 			
 				<li class="wc_cp_metabox wc-metabox bg-transparent" rv-each-option="component.attributes.options.models" rv-data-position="option.attributes.position">
 					
-					<selection option="option" depth="0" component="component" product="product"></selection>
+					<selection option="option" depth="0" component="component" product="product" class="js-metabox"></selection>
 						
 				</li>
 				
@@ -573,6 +573,8 @@
 
 <script type="text/html" id="selection">
 	
+	<input type="hidden" class="js-item-position" rv-input-match="option.attributes.position" />
+	
 	<h3 rv-on-click="option.open">
 		
 		<a class="button wc_cp_right" rv-if="parent" rv-on-click="parent.removeOption" rv-option_cid="option.cid"><?php _e( 'Remove', 'woocommerce' ); ?></a>
@@ -584,8 +586,6 @@
 		<strong rv-html="option.attributes.title" class="js-wc-product-search-title"></strong>
 		
 		<input type="hidden" rv-value="option.attributes.id" />
-		
-		<input type="hidden" class="js-item-position" rv-input-match="option.attributes.position" />
 		
 	</h3>
 	
@@ -837,7 +837,7 @@
 				
 					<div class="wc_cp_metabox wc-metabox bg-transparent" rv-each-child="option.attributes.options.models" rv-data-position="child.attributes.position">
 						
-						<selection option="child" depth="depth" parent="option" component="component" product="product"></selection>
+						<selection option="child" depth="depth" parent="option" component="component" product="product" class="js-metabox"></selection>
 							
 					</div>
 					

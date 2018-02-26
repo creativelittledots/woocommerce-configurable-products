@@ -32,7 +32,9 @@ if ( ! defined( 'ABSPATH' ) )
 				
 				<ul class="wc-metaboxes js-sortable ui-sortable" data-count="">
 				
-					<li rv-each-scenario="product.attributes.scenarios.models" class="bto_scenario wc-metabox" rv-rel="scenario.attributes.position">
+					<li rv-each-scenario="product.attributes.scenarios.models" class="bto_scenario wc-metabox js-metabox" rv-rel="scenario.attributes.position">
+					
+						<input type="hidden" class="js-item-position" rv-input-match="scenario.attributes.position" />
 					
 						<h3 rv-on-click="scenario.open">
 							
@@ -63,8 +65,6 @@ if ( ! defined( 'ABSPATH' ) )
 										</label>
 										
 										<input type="text" class="scenario_title component_text_input" rv-value="scenario.attributes.title"/>
-										
-										<input type="hidden" class="js-item-position" rv-input-match="scenario.attributes.position" />
 										
 									</div>
 									

@@ -165,7 +165,7 @@ jQuery( function($) {
 			onDrop:function(item){
 				item.removeClass('dragged');
 				item.closest('.js-sortable').find('>li').each(function(index, el) {
-					$(this).data('positon', index).find('.js-item-position').val(index+1).trigger('change');
+					$(this).data('position', index).find('> .js-metabox > .js-item-position').val(index+1).trigger('change');
 				});
 			},
 			tolerance: -10,
