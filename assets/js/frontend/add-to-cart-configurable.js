@@ -705,6 +705,12 @@ jQuery(document).ready(function($) {
 	  	}
 	});
 	
+	rivets.binders['attr-*'] = function(el, value) {
+	    var attrToSet = this.type.substring(this.type.indexOf('-')+1)
+	
+	    value && el.setAttribute(attrToSet, attrToSet);
+	}
+	
 	rivets.components['component'] = {
 		template: function() {
 			return document.querySelector('.js-component-component').innerHTML;

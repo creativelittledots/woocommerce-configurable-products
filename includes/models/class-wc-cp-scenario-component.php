@@ -64,6 +64,18 @@ class WC_CP_Scenario_Component {
 		
 	}
 	
+	public function clean() {
+		
+		foreach($this->get_options() as &$option) {
+			
+			$option->clean();
+			
+		}
+		
+		$this->id = null;
+		
+	}
+	
 	// Load Associations
 	
 	public function load_options() {

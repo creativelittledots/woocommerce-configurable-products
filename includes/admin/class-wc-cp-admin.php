@@ -62,6 +62,8 @@ class WC_CP_Admin {
         add_action( 'export_wp', array($this, 'export_config_products'));
         
         add_action( 'admin_init', array( $this, 'register_importers' ) );
+        
+        add_action( 'woocommerce_product_duplicate', array($this, 'duplicate_configurable_data'), 10, 2);
 			
 	}
 	
@@ -439,6 +441,10 @@ class WC_CP_Admin {
 			update_post_meta( $post_id, '_wc_cp_per_product_pricing', 'no' );
 			
 		}
+		
+		$product = wc_get_product($post_id);
+		
+		$product->sync_configurable(true);
 
 	}
 
@@ -691,6 +697,12 @@ class WC_CP_Admin {
 			echo ' enctype="multipart/form-data"';
 			
 		}
+		
+	}
+	
+	public function duplicate_configurable_data($duplicate, $product) {
+
+		$duplicate->save_configuration( $product->get_raw_configuration() );
 		
 	}
 	

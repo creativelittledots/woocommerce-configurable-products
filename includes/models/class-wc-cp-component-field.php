@@ -72,6 +72,12 @@ class WC_CP_Component_Field {
 		
 	}
 	
+	public function clean() {
+
+		$this->id = null;
+		
+	}
+	
 	// Save Methods
 	
 	public function save() {

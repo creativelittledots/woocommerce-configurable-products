@@ -48,6 +48,12 @@ class WC_CP_Scenario_Component_Option {
 		
 	}
 	
+	public function clean() {
+		
+		$this->id = null;
+		
+	}
+	
 	// Save Methods
 	
 	public function save() {

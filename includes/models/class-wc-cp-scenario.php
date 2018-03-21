@@ -62,6 +62,18 @@ class WC_CP_Scenario {
 		
 	}
 	
+	public function clean() {
+		
+		foreach($this->get_components() as &$component) {
+			
+			$component->clean();
+			
+		}
+		
+		$this->id = null;
+		
+	}
+	
 	// Load Associations
 	
 	public function load_components() {

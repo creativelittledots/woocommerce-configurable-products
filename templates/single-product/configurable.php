@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		
 		<p class="component_description" rv-if="component:description" rv-html="component:description"></p>
 		
-		<select rv-if="component:style | = 'dropdown'" rv-name="component:id" rv-sku-order="component:sku_order" rv-required="component:optional | !" rv-value="component:subselected">
+		<select rv-if="component:style | = 'dropdown'" rv-name="component:id" rv-sku-order="component:sku_order" rv-attr-required="component:optional | !" rv-value="component:subselected">
 									
 			<option class="empty none" value="0" rv-text="component:empty_text"></option>
 				
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		
 		<div rv-if="component:style | = 'number'" rv-class-error="component:error">
 		
-			<input type="number" rv-min="component:field:min" rv-max="component:field:max" rv-step="component:field:step" rv-value="component:field:value" rv-placeholder="component:field:placeholder" rv-required="component:optional | !" rv-disabled="component:available | !" class="js-cnfg-number-field" />
+			<input type="number" rv-min="component:field:min" rv-max="component:field:max" rv-step="component:field:step" rv-value="component:field:value" rv-placeholder="component:field:placeholder" rv-attr-required="component:optional | !" rv-disabled="component:available | !" class="js-cnfg-number-field" />
 			
 			<small class="error">The value must be between { component:field:min } and { component:field:max }</small>
 			
@@ -71,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		
 		<div rv-if="component:style | = 'text'" rv-class-error="component:error">
 		
-			<input type="text" rv-value="component:field:value" rv-placeholder="component:field:placeholder" rv-required="component:optional | !" rv-disabled="component:available | !" />
+			<input type="text" rv-value="component:field:value" rv-placeholder="component:field:placeholder" rv-attr-required="component:optional | !" rv-disabled="component:available | !" />
 			
 			<small class="error">This field is required</small>
 			

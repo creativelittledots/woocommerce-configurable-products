@@ -94,6 +94,30 @@ class WC_CP_Component {
 		
 	}
 	
+	public function clean() {
+		
+		foreach($this->get_components() as &$component) {
+			
+			$component->clean();
+			
+		}
+		
+		foreach($this->get_options() as &$option) {
+			
+			$option->clean();
+			
+		}
+		
+		if( $field = $this->get_field() ) {
+			
+			$field->clean();
+			
+		}
+		
+		$this->id = null;
+		
+	}
+	
 	// Get Associations
 	
 	public function get_options( $load = true ) {

@@ -270,7 +270,7 @@ class WC_CP_Install {
 				sovereign tinyint(1) NOT NULL DEFAULT 0,
 				affect_sku tinyint(1) NOT NULL DEFAULT 0,
 				sku_order tinyint(1) NOT NULL DEFAULT 0,
-				sku_default tinyint(1) NULL,
+				sku_default varchar(255) NULL,
 				position int(11) NOT NULL DEFAULT 0,
 				PRIMARY KEY  (id),
 				FOREIGN KEY (component_id) REFERENCES {$wpdb->prefix}woocommerce_components(component_id),

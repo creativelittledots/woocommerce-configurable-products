@@ -313,14 +313,14 @@ class WC_Product_Configurable extends WC_Product {
 	 *
 	 * @return void
 	 */
-	public function sync_configurable() {
+	public function sync_configurable($force = false) {
 
 		global $woocommerce_configurable_products;
 
 		// Initialize min price information
 		$min_configurable_price = $min_configurable_regular_price = 0;
 
-		if ( $this->is_priced_per_product() ) {
+		if ( $this->is_priced_per_product() || $force ) {
 
 			foreach ( $this->get_components() as $component ) {
 
@@ -496,6 +496,28 @@ class WC_Product_Configurable extends WC_Product {
 		}
 
 		return $this->configuration;
+	}
+	
+	public function get_raw_configuration() {
+		
+		$configuration = $this->get_configuration();
+		
+		foreach($configuration->components as &$component) {
+			
+			$component->clean();
+			
+		}
+		
+		foreach($configuration->scenarios as &$scenario) {
+			
+			$scenario->clean();
+			
+		}
+		
+		$configuration->id = null;
+		
+		return json_decode(json_encode($configuration), true);
+		
 	}
 	
 	/**

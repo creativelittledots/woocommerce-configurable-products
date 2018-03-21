@@ -105,6 +105,18 @@ class WC_CP_Option {
 		
 	}
 	
+	public function clean() {
+		
+		foreach($this->get_options() as &$option) {
+			
+			$option->clean();
+			
+		}
+		
+		$this->id = null;
+		
+	}
+	
 	// Get Associations
 	
 	public function get_options( $load = true ) {

@@ -561,7 +561,7 @@ jQuery( function($) {
 			this.save(null, {
 				success: _.bind(function(model, response) {
 					if(this.promise) {
-						$('#publish').trigger('click');
+						this.promise.trigger('click');
 					}
 				}, this),
 				error: function(model, xhr) {
@@ -577,15 +577,15 @@ jQuery( function($) {
 	
 	var product = new Product( wc_cp_admin_params.product );
 	
-	$('#publish').click(function(e) {
+	$('#publish, #save-post').click(function(e) {
 		
-		if( ! product.promise && $('#product-type').val() == 'configurable' ) {
+		if( ! product.promise && $('#product-type').val() == 'configurable' && $('.js-save-configuration').length ) {
 		
 			e.preventDefault();
 			
 			$(this).addClass('button-primary-disabled').siblings('.spinner').addClass('is-active');
 			
-			product.promise = true;
+			product.promise = $(this);
 			
 			$('.js-save-configuration').trigger('click');
 			
