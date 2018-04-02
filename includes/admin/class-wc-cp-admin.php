@@ -701,8 +701,12 @@ class WC_CP_Admin {
 	}
 	
 	public function duplicate_configurable_data($duplicate, $product) {
+		
+		if( $duplicate->is_type( 'configurable' ) ) {
 
-		$duplicate->save_configuration( $product->get_raw_configuration() );
+			$duplicate->save_configuration( $product->get_raw_configuration() );
+			
+		}
 		
 	}
 	
