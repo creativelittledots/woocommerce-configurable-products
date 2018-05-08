@@ -41,6 +41,11 @@ class WC_CP_Display {
 		// QV support
 		add_action( 'wc_quick_view_enqueue_scripts', array( $this, 'wc_cp_qv' ) );
 		
+		// GPF Support
+		add_filter( 'woocommerce_gpf_product_feed_args', array($this, 'gpf_product_feed_args'));
+			
+		add_filter( 'woocommerce_gpf_other_supported_product_types', array($this, 'gpf_other_supported_product_types'));
+		
 	}
 
 
@@ -176,6 +181,40 @@ class WC_CP_Display {
 			// Enqueue styles
 			wp_enqueue_style( 'wc-configurable-single-css' );
 		}
+	}
+	
+	
+	public function gpf_other_supported_product_types($types) {
+			
+		$types[] = 'configurable';
+		
+		return $types;
+		
+	} 
+	
+	public function gpf_product_feed_args( $array ) {
+		
+		$configurables = wc_get_products(array(
+			'type' => array('configurable'), 
+			'visibility' => 'catalog', 
+			'return' => 'ids',
+			'limit' => 9999,
+			'meta_key' => '_needs_configuration',
+			'meta_value' => 1
+		));
+		
+		$array['type'][] = 'configurable';
+		
+		if( $configurables ) {
+			
+			$array['post__not_in'] = ! empty( $array['post__not_in'] ) ? $array['post__not_in'] : [];
+			
+			$array['post__not_in'] = array_merge($array['post__not_in'], $configurables);
+			
+		}
+		
+		return $array;
+		
 	}
 	
 }

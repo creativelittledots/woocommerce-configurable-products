@@ -52,6 +52,8 @@ class WC_Product_Configurable extends WC_Product {
 			
 		}
 		
+		$this->price_inc_tax = wc_get_price_including_tax($this);;
+		
 	}
 	
 	public function get_type() {
@@ -1157,9 +1159,11 @@ class WC_Product_Configurable extends WC_Product {
 	
 	public function save_components( $components = array() ) {
 		
-		if( $components ) {
+		$this->delete_components( $components );
 		
-			$this->delete_components( $components );
+		if( $components ) {
+			
+			$needs_configuration = false;
 		
 			/* -------------------------- */
 			/* Components
@@ -1187,7 +1191,15 @@ class WC_Product_Configurable extends WC_Product {
 					
 				}
 				
+				if( $object->needs_configuration() ) {
+					
+					$needs_configuration = true;
+					
+				}
+				
 			}
+			
+			update_post_meta( $this->get_id(), '_needs_configuration', $needs_configuration);
 			
 			return $this->get_components( true );
 			
@@ -1197,9 +1209,9 @@ class WC_Product_Configurable extends WC_Product {
 	
 	public function save_scenarios( $scenarios = array() ) {
 		
-		if( $scenarios ) {
+		$this->delete_scenarios( $scenarios );
 		
-			$this->delete_scenarios( $scenarios );
+		if( $scenarios ) {
 	
 			foreach ( $scenarios as $scenario ) {
 

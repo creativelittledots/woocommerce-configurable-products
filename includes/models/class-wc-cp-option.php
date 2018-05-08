@@ -507,7 +507,7 @@ class WC_CP_Option {
 		
 		elseif( $product_id = $this->get_product_id() ) {
 			
-			$price = get_post_meta( $product_id, '_price', true );
+			$price = get_post_meta( $product_id, '_price', true ) ?: 0;
 			
 		}
 		

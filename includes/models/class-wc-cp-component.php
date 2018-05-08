@@ -156,6 +156,46 @@ class WC_CP_Component {
 		
 	}
 	
+	public function needs_configuration() {
+		
+		$needs_configuration = false;
+		
+		foreach( $this->get_components() as $component ) {
+			
+			if( $component->needs_configuration() ) {
+					
+				$needs_configuration = true;
+				
+				break;
+				
+			}
+			
+		}
+		
+		if( ! $needs_configuration && ! $this->is_optional() ) {
+			
+			$default = false;
+			
+			foreach( $this->get_options() as $option ) {
+			
+				if( $option->is_selected() ) {
+						
+					$default = true;
+					
+					break;
+					
+				}
+				
+			}
+			
+			$needs_configuration = ! $default;
+			
+		}
+		
+		return $needs_configuration;
+		
+	}
+	
 	public function get_field( $load = true ) {
 		
 		if( $load ) {
@@ -424,6 +464,8 @@ class WC_CP_Component {
 			case 'subcomponents' :
 			
 				$components = isset( $data[ 'components' ] ) ? $data[ 'components' ] : array();
+				
+				$this->delete_options();
 			
 				$this->save_components( $components );
 				
@@ -432,6 +474,8 @@ class WC_CP_Component {
 			default :
 			
 				$options = isset( $data[ 'options' ] ) ? $data[ 'options' ] : array();
+				
+				$this->delete_components();
 			
 				$this->save_options( $options );	
 				
