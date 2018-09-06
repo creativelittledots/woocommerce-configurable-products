@@ -169,7 +169,7 @@ class WC_CP_Cart {
 		
 		$product = wc_get_product($product_id);
 		
-		if( $product->is_type('configurable') ) {
+		if( $product->is_type('configurable') && ! empty( $cart_item_data['configurable']['selections'] ) ) {
 			
 			$key .= md5( http_build_query( $cart_item_data['configurable']['selections'] ) );
 			
