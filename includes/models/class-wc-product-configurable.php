@@ -52,7 +52,7 @@ class WC_Product_Configurable extends WC_Product {
 			
 		}
 		
-		$this->price_inc_tax = wc_get_price_including_tax($this);;
+		$this->price_inc_tax = wc_get_price_including_tax($this);
 		
 	}
 	
@@ -1068,7 +1068,8 @@ class WC_Product_Configurable extends WC_Product {
 				'_line_subtotal_tax',  
 				'_line_total',  
 				'_line_tax',  
-				'_line_tax_data'
+				'_line_tax_data',
+				'data'
 			) ) ) ) { 
 				
                 continue; 
