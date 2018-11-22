@@ -119,7 +119,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		
 		<li rv-each-option="options" rv-class-disabled="option:available | !">
 		
-			<input type="checkbox" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id | append '_' | append depth" rv-value="option:id" rv-checked="option:selected" rv-disabled="option:available | !" />
+			<input type="checkbox" rv-id="'component_' | append component:id | append '_option_' | append option.id" rv-name="component:id | append '_' | append depth | append '[]'"  rv-value="option:cached_id" rv-checked="option:selected" rv-disabled="option:available | !" />
 			
 			<label rv-for="'component_' | append component:id | append '_option_' | append option.id"><span rv-html="option:display"></span></label>
 			

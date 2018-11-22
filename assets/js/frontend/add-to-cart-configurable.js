@@ -67,6 +67,12 @@ jQuery(document).ready(function($) {
 	
 	var Option = Backbone.Model.extend({
 		initialize: function() {
+			this.set('cached_id', this.id);
+			this.on('change:cached_id', function() {
+				this.set('cached_id', this.id, {
+					silent: true
+				})
+			});
 			this.on('change:' + this.get('display_price_field'), this.set_display);
 			this.set('price_incl_tax', this.get('display_price_incl_tax'));
 			this.set('price_excl_tax', this.get('display_price_excl_tax'));
@@ -88,6 +94,7 @@ jQuery(document).ready(function($) {
 		},
 		defaults: {
 			id: null,
+			cached_id: null,
 			title: '',
 			display: '',
 			display_price_field: 'price_excl_tax',
