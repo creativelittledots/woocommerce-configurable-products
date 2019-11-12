@@ -56,6 +56,14 @@ class WC_CP_Cart {
 		
 		if( $product->is_type('configurable') ) {
 			
+			if(!empty($cart_item['wc_cp_order_again_price'])) {
+			
+				add_filter('wc_cp_set_explicit_price', '__return_true'); 
+				$cart_item['data']->set_price($cart_item['wc_cp_order_again_price']);
+				remove_filter('wc_cp_set_explicit_price', '__return_true'); 
+				
+			}
+			
 			$cart_item['configurable'] = array_merge(array(
 				'product_id' => $product_id,
 				'quantity' => ! empty( $cart_item['quantity'] ) ? $cart_item['quantity'] : 1,
