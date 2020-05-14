@@ -76,7 +76,7 @@ class WC_Product_Configurable extends WC_Product {
 	
 	public function get_explicit_price() {
 		
-		return $this->explicit_price;
+		return apply_filters( 'woocommerce_get_price', $this->explicit_price, $this );
 		
 	}
 
@@ -90,11 +90,11 @@ class WC_Product_Configurable extends WC_Product {
 		
 		if( ! ( $price = $this->get_explicit_price() ) && ! ( $price = $this->get_cart_price() ) ) {
 			
-			$price = $this->get_raw_price();
+			$price = apply_filters( 'woocommerce_get_price', $this->get_raw_price(), $this );
 			
 		}
 		
-		return apply_filters( 'woocommerce_configurable_get_price', apply_filters( 'woocommerce_get_price', $price, $this ), $this );
+		return apply_filters( 'woocommerce_configurable_get_price', $price, $this );
 		
 	}
 	

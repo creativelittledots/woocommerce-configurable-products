@@ -59,7 +59,7 @@ class WC_CP_Cart {
 			if(!empty($cart_item['wc_cp_order_again_price'])) {
 			
 				add_filter('wc_cp_set_explicit_price', '__return_true'); 
-				$cart_item['data']->set_price($cart_item['wc_cp_order_again_price']);
+				$cart_item['data'] && $cart_item['data']->set_price($cart_item['wc_cp_order_again_price']);
 				remove_filter('wc_cp_set_explicit_price', '__return_true'); 
 				
 			}
