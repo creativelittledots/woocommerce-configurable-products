@@ -509,8 +509,8 @@ jQuery( function($) {
 				this.set('components', new Components(this.get('components'), {silent: false}));
 				
 			});
-			this.listenTo(this.get('components'), 'remove', this.removeScenarioComponents);
 			this.trigger('sync');
+			this.listenTo(this.get('components'), 'remove', this.removeScenarioComponents);
 		},
 		
 		defaults: {
