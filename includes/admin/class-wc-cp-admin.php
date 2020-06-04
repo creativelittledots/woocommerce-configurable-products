@@ -423,16 +423,20 @@ class WC_CP_Admin {
 			update_post_meta( $post_id, '_wc_cp_per_product_pricing', 'yes' );
 
 			update_post_meta( $post_id, '_base_sale_price', $_POST[ '_base_sale_price' ] === '' ? '' : stripslashes( wc_format_decimal( $_POST[ '_base_sale_price' ] ) ) );
+			update_post_meta( $post_id, '_sale_price', $_POST[ '_base_sale_price' ] === '' ? '' : stripslashes( wc_format_decimal( $_POST[ '_base_sale_price' ] ) ) );
 			
 			update_post_meta( $post_id, '_base_regular_price', $_POST[ '_base_regular_price' ] === '' ? '' : stripslashes( wc_format_decimal( $_POST[ '_base_regular_price' ] ) ) );
+			update_post_meta( $post_id, '_regular_price', $_POST[ '_base_regular_price' ] === '' ? '' : stripslashes( wc_format_decimal( $_POST[ '_base_regular_price' ] ) ) );
 
 			if ( $_POST[ '_base_sale_price' ] !== '' ) {
 				
 				update_post_meta( $post_id, '_base_price', stripslashes( wc_format_decimal( $_POST[ '_base_sale_price' ] ) ) );
+				update_post_meta( $post_id, '_price', stripslashes( wc_format_decimal( $_POST[ '_base_sale_price' ] ) ) );
 				
 			} else {
 				
 				update_post_meta( $post_id, '_base_price', stripslashes( wc_format_decimal( $_POST[ '_base_regular_price' ] ) ) );
+				update_post_meta( $post_id, '_price', stripslashes( wc_format_decimal( $_POST[ '_base_regular_price' ] ) ) );
 				
 			}
 
