@@ -462,7 +462,7 @@ class WC_Product_Configurable extends WC_Product {
 			
 				$base_price =  wc_price( wc_prices_include_tax() ? $this->get_base_regular_price_including_tax() : $this->get_base_regular_price_excluding_tax() );
 				
-				$price = $this->is_on_sale() ? wc_format_sale_price($base_price, $price) : $price;
+				$price = $this->is_on_sale() && is_singular('product') ? wc_format_sale_price($base_price, $price) : $price;
 				$price = apply_filters( 'woocommerce_configurable_price_html', $this->get_price_html_from_text() . $price . $this->get_price_suffix(), $this );
 
 			}
