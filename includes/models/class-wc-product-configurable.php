@@ -259,6 +259,28 @@ class WC_Product_Configurable extends WC_Product {
         return $this->get_price_excluding_tax( 1, $this->get_base_price() );
 		
 	}
+	
+	/**
+	 * Get configurable base regular price including tax.
+	 *
+	 * @return double
+	 */
+	public function get_base_regular_price_including_tax() {
+
+        return $this->get_price_including_tax( 1, $this->get_base_regular_price() );
+		
+	}
+	
+	/**
+	 * Get configurable base regular price including tax.
+	 *
+	 * @return double
+	 */
+	public function get_base_regular_price_excluding_tax() {
+
+        return $this->get_price_excluding_tax( 1, $this->get_base_regular_price() );
+		
+	}
 
 	/**
 	 * Get configurable base regular price.
@@ -423,26 +445,25 @@ class WC_Product_Configurable extends WC_Product {
 		if ( $this->is_priced_per_product() ) {
 			
 			$price_type = wc_prices_include_tax() ? 'price_incl_tax' : 'price_excl_tax';
+			
+			$min_args = is_singular('product') ? array(
+				'price_format' => '%1$s<span rv-text="product:' . $price_type . '">%2$s</span>'
+			) : array();
 
 			// Get the price
 			if ( $this->get_min_price() === '' ) {
-				
-				$args = is_singular('product') ? array(
-					'price_format' => '%1$s<span rv-text="product:' . $price_type . '">%2$s</span>'
-				) : array();
 
 				$price = apply_filters( 'woocommerce_configurable_empty_price_html', wc_price( 
-				$this->get_min_price(), $args ) . $this->get_price_suffix(), $this );
+				$this->get_min_price(), $min_args ) . $this->get_price_suffix(), $this );
 
 			} else {
-				
-				$args = is_singular('product') ? array(
-					'price_format' => '%1$s<span rv-text="product:' . $price_type . '">%2$s</span>'
-				) : array();
 
-				$price = apply_filters( 'woocommerce_configurable_price_html', $this->get_price_html_from_text() . wc_price( 
-				$this->get_min_price(), $args ) . 
-				$this->get_price_suffix(), $this );
+				$price =  wc_price( $this->get_min_price(), $min_args );
+			
+				$base_price =  wc_price( wc_prices_include_tax() ? $this->get_base_regular_price_including_tax() : $this->get_base_regular_price_excluding_tax() );
+				
+				$price = $this->is_on_sale() ? wc_format_sale_price($base_price, $price) : $price;
+				$price = apply_filters( 'woocommerce_configurable_price_html', $this->get_price_html_from_text() . $price . $this->get_price_suffix(), $this );
 
 			}
 
@@ -460,9 +481,9 @@ class WC_Product_Configurable extends WC_Product {
      *
      * @return string
      */
-    public function get_price_html_from_text() {
+    public function get_price_html_from_text($hide_if_valid = true) {
 	    
-        return '<span class="from" rv-show="product:no_of_errors">' . _x( 'From:', 'min_price', 'woocommerce' ) . ' </span>';
+        return '<span class="from" ' . ($hide_if_valid ? 'rv-show="product:no_of_errors"' : '') . '>' . _x( 'From:', 'min_price', 'woocommerce' ) . ' </span>';
         
     }
 
@@ -484,6 +505,8 @@ class WC_Product_Configurable extends WC_Product {
 			$configuration->min_price_incl_tax = $this->get_min_price_including_tax();
 			$configuration->base_price_incl_tax = $this->get_base_price_including_tax();
 			$configuration->base_price_excl_tax = $this->get_base_price_excluding_tax();
+			$configuration->base_regular_price_incl_tax = $this->get_base_regular_price_including_tax();
+			$configuration->base_regular_price_excl_tax = $this->get_base_regular_price_excluding_tax();
 			$configuration->base_sku = $this->get_base_sku();
 			$configuration->weight_unit = strtoupper( get_option('woocommerce_weight_unit') );
 			$configuration->base_weight = $this->get_base_weight();
